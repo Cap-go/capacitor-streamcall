@@ -12,8 +12,12 @@ import io.getstream.video.android.core.notifications.NotificationHandler
 import android.media.AudioAttributes
 import android.media.RingtoneManager
 import android.os.Build
+import io.getstream.video.android.model.StreamCallId
 
-class CustomNotificationHandler(val application: Application) : DefaultNotificationHandler(application, hideRingingNotificationInForeground = false) {
+class CustomNotificationHandler(
+    val application: Application,
+    private val endCall: (callId: StreamCallId) -> Unit = {}
+) : DefaultNotificationHandler(application, hideRingingNotificationInForeground = false) {
     companion object {
         private const val PREFS_NAME = "StreamCallPrefs"
         private const val KEY_NOTIFICATION_TIME = "notification_creation_time"
@@ -65,6 +69,11 @@ class CustomNotificationHandler(val application: Application) : DefaultNotificat
             }
             addCallActions(acceptCallPendingIntent, rejectCallPendingIntent, callerName)
         }
+    }
+
+    override fun onMissedCall(callId: StreamCallId, callDisplayName: String) {
+        endCall(callId)
+        super.onMissedCall(callId, callDisplayName)
     }
 
     open fun customCreateIncomingCallChannel(channelId: String, showAsHighPriority: Boolean) {

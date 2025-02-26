@@ -131,7 +131,7 @@ export class AppComponent {
         this.isInCall = false;
         console.log('Call rejected', event);
         this.cdr.detectChanges();
-      } else if (event.state === 'ringing' && !Capacitor.isNativePlatform()) {
+      } else if (event.state === 'ringing') {
         this.incomingCallId = event.callId;
         await this.presentIncomingCallToast();
         this.cdr.detectChanges();

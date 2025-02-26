@@ -1,5 +1,6 @@
 package ee.forgr.capacitor.streamcall
 
+import TouchInterceptWrapper
 import android.app.Application
 import android.app.KeyguardManager
 import android.content.Context
@@ -14,24 +15,28 @@ import com.getcapacitor.Plugin
 import com.getcapacitor.PluginCall
 import com.getcapacitor.PluginMethod
 import com.getcapacitor.annotation.CapacitorPlugin
-import io.getstream.video.android.core.GEO
-import io.getstream.video.android.core.StreamVideo
-import io.getstream.video.android.core.StreamVideoBuilder
-import io.getstream.video.android.core.notifications.NotificationConfig
-import io.getstream.video.android.model.User
 import io.getstream.android.push.firebase.FirebasePushDeviceGenerator
 import io.getstream.log.Priority
 import io.getstream.video.android.core.Call
+import io.getstream.video.android.core.GEO
+import io.getstream.video.android.core.StreamVideo
+import io.getstream.video.android.core.StreamVideoBuilder
 import io.getstream.video.android.core.logging.LoggingLevel
 import io.getstream.video.android.core.model.RejectReason
+import io.getstream.video.android.core.notifications.NotificationConfig
 import io.getstream.video.android.core.notifications.NotificationHandler
+import io.getstream.video.android.core.sounds.defaultResourcesRingingConfig
+import io.getstream.video.android.core.sounds.emptyRingingConfig
+import io.getstream.video.android.core.sounds.toSounds
+import io.getstream.video.android.model.User
 import io.getstream.video.android.model.streamCallId
 import kotlinx.coroutines.launch
-import org.openapitools.client.models.VideoEvent
 import org.openapitools.client.models.CallEndedEvent
 import org.openapitools.client.models.CallMissedEvent
-import org.openapitools.client.models.CallSessionEndedEvent
 import org.openapitools.client.models.CallRejectedEvent
+import org.openapitools.client.models.CallSessionEndedEvent
+import org.openapitools.client.models.VideoEvent
+
 
 @CapacitorPlugin(name = "StreamCall")
 public class StreamCallPlugin : Plugin() {
@@ -174,17 +179,6 @@ public class StreamCallPlugin : Plugin() {
         // Make WebView transparent
         bridge?.webView?.setBackgroundColor(Color.TRANSPARENT)
 
-        // Create barrier view
-        barrierView = View(context).apply {
-            isVisible = false
-            layoutParams = FrameLayout.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT,
-                ViewGroup.LayoutParams.MATCH_PARENT
-            )
-            setBackgroundColor(Color.parseColor("#1a242c"))
-        }
-        parent.addView(barrierView, parent.indexOfChild(bridge?.webView) + 1) // Add above WebView
-
         // Create and add overlay view below WebView
         overlayView = ComposeView(context).apply {
             isVisible = false
@@ -201,6 +195,23 @@ public class StreamCallPlugin : Plugin() {
             }
         }
         parent.addView(overlayView, 0)  // Add at index 0 to ensure it's below WebView
+
+        val originalContainer: ViewGroup = getBridge().webView
+
+        val wrapper = TouchInterceptWrapper(parent)
+        (parent.parent as ViewGroup).removeView(originalContainer)
+        (parent.parent as ViewGroup).addView(wrapper, 0)
+
+        // Create barrier view
+        barrierView = View(context).apply {
+            isVisible = false
+            layoutParams = FrameLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.MATCH_PARENT
+            )
+            setBackgroundColor(Color.parseColor("#1a242c"))
+        }
+        parent.addView(barrierView, parent.indexOfChild(bridge?.webView) + 1) // Add above WebView
 
         // Create and add incoming call view
         incomingCallView = ComposeView(context).apply {
@@ -314,7 +325,28 @@ public class StreamCallPlugin : Plugin() {
                     context = contextToUse
                 )),
                 requestPermissionOnAppLaunch = { true },
-                notificationHandler = CustomNotificationHandler(application)
+                notificationHandler = CustomNotificationHandler(
+                    application = application,
+                    endCall = { callId ->
+                        val activeCall = streamVideoClient?.call(callId.type, callId.id)
+
+                        kotlinx.coroutines.GlobalScope.launch {
+                            try {
+                                android.util.Log.i(
+                                    "StreamCallPlugin",
+                                    "Attempt to endCallRaw, activeCall == null: ${activeCall == null}",
+                                )
+                                activeCall?.let { endCallRaw(it) }
+                            } catch (e: Exception) {
+                                android.util.Log.e(
+                                    "StreamCallPlugin",
+                                    "Error ending after missed call notif action",
+                                    e
+                                )
+                            }
+                        }
+                    }
+                )
             )
 
             // Initialize StreamVideo client
@@ -325,7 +357,7 @@ public class StreamCallPlugin : Plugin() {
                 user = savedCredentials.user,
                 token = savedCredentials.tokenValue,
                 notificationConfig = notificationConfig,
-
+                sounds = emptyRingingConfig().toSounds()
                 // loggingLevel = LoggingLevel(priority = Priority.VERBOSE),
             ).build()
 
@@ -562,6 +594,37 @@ public class StreamCallPlugin : Plugin() {
         }
     }
 
+    suspend fun endCallRaw(call: Call) {
+        val callId = call.id
+        android.util.Log.d("StreamCallPlugin", "Attempting to end call $callId")
+        call.leave()
+        call.reject(reason = RejectReason.Cancel)
+        
+        activity?.runOnUiThread {
+            android.util.Log.d("StreamCallPlugin", "Setting overlay invisible after ending call $callId")
+            overlayView?.setContent {
+                CallOverlayView(
+                    context = context,
+                    streamVideo = streamVideoClient,
+                    call = null
+                )
+            }
+            overlayView?.isVisible = false
+        }
+        
+        // Notify that call has ended
+        val data = JSObject().apply {
+            put("callId", callId)
+            put("state", "left")
+        }
+        notifyListeners("callEvent", data)
+
+        val keyguardManager = context.getSystemService(Context.KEYGUARD_SERVICE) as KeyguardManager
+        if (keyguardManager.isKeyguardLocked) {
+            activity.moveTaskToBack(true)
+        }
+    }
+
     @PluginMethod
     fun endCall(call: PluginCall) {
         try {
@@ -574,37 +637,10 @@ public class StreamCallPlugin : Plugin() {
 
             kotlinx.coroutines.GlobalScope.launch {
                 try {
-                    val callId = activeCall.value?.id
-                    android.util.Log.d("StreamCallPlugin", "Attempting to end call $callId")
-                    activeCall.value?.leave()
-                    
-                    activity?.runOnUiThread {
-                        android.util.Log.d("StreamCallPlugin", "Setting overlay invisible after ending call $callId")
-                        overlayView?.setContent {
-                            CallOverlayView(
-                                context = context,
-                                streamVideo = streamVideoClient,
-                                call = null
-                            )
-                        }
-                        overlayView?.isVisible = false
-                    }
-                    
-                    // Notify that call has ended
-                    val data = JSObject().apply {
-                        put("callId", callId)
-                        put("state", "left")
-                    }
-                    notifyListeners("callEvent", data)
-                    
+                    activeCall.value?.let { endCallRaw(it) }
                     call.resolve(JSObject().apply {
                         put("success", true)
                     })
-
-                    val keyguardManager = context.getSystemService(Context.KEYGUARD_SERVICE) as KeyguardManager
-                    if (keyguardManager.isKeyguardLocked) {
-                        activity.moveTaskToBack(true)
-                    }
                 } catch (e: Exception) {
                     android.util.Log.e("StreamCallPlugin", "Error ending call: ${e.message}")
                     call.reject("Failed to end call: ${e.message}")
@@ -629,6 +665,12 @@ public class StreamCallPlugin : Plugin() {
                 return
             }
 
+            val selfUserId = streamVideoClient?.userId
+            if (selfUserId == null) {
+                call.reject("No self-user id found. Are you not logged in?")
+                return
+            }
+
             val callType = call.getString("type") ?: "default"
             val shouldRing = call.getBoolean("ring") ?: true
             val callId = java.util.UUID.randomUUID().toString()
@@ -648,7 +690,7 @@ public class StreamCallPlugin : Plugin() {
                     android.util.Log.d("StreamCallPlugin", "Creating call with member...")
                     // Create the call with the member
                     streamCall?.create(
-                        memberIds = listOf(userId),
+                        memberIds = listOf(userId, selfUserId),
                         custom = emptyMap(),
                         ring = shouldRing
                     )
