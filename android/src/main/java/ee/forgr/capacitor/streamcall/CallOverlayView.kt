@@ -34,7 +34,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalInspectionMode
+import androidx.compose.ui.platform.LocalLayoutDirection
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
@@ -218,10 +221,20 @@ fun CallOverlayView(
             val floatingVideoRender: @Composable BoxScope.(
                 call: Call,
                 parentSize: IntSize
-            ) -> Unit = { call, parentSize ->
+            ) -> Unit = { call, _ ->
                 val participants by call.state.participants.collectAsState()
                 val me = participants.firstOrNull { it.isLocal }
                 me?.let { localParticipant ->
+                    val configuration = LocalConfiguration.current
+                    val layoutDirection = LocalLayoutDirection.current
+                    val density = LocalDensity.current
+                    val safeDrawingPadding = WindowInsets.safeDrawing.asPaddingValues()
+                    val adjustedSize = with(density) {
+                        IntSize(
+                            width = (configuration.screenWidthDp.dp.toPx() - safeDrawingPadding.calculateLeftPadding(layoutDirection).toPx() - safeDrawingPadding.calculateRightPadding(layoutDirection).toPx()).toInt(),
+                            height = (configuration.screenHeightDp.dp.toPx() - safeDrawingPadding.calculateTopPadding().toPx() - safeDrawingPadding.calculateBottomPadding().toPx()).toInt()
+                        )
+                    }
                     FloatingParticipantVideo(
                         call = call,
                         videoRenderer = videoRendererNoAction,
@@ -231,7 +244,7 @@ fun CallOverlayView(
                             localParticipant
                         },
                         style = RegularVideoRendererStyle(),
-                        parentBounds = parentSize,
+                        parentBounds = adjustedSize,
                     )
                 }
             }
@@ -239,7 +252,8 @@ fun CallOverlayView(
             if (remoteParticipants.isNotEmpty()) {
                 android.util.Log.d("CallOverlayView", "Showing ParticipantsLayout with ${remoteParticipants.size} remote participants")
                 ParticipantsLayout(
-                    modifier = Modifier.fillMaxSize(),
+                    modifier = Modifier
+                        .fillMaxSize(),
                     call = call,
                     videoRenderer = videoRenderer,
                     floatingVideoRenderer = floatingVideoRender

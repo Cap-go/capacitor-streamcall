@@ -1,7 +1,12 @@
 package io.ionic.starter;
 
+import android.app.Activity;
 import android.app.Application;
+import android.os.Bundle;
 import android.util.Log;
+
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 
 import ee.forgr.capacitor.streamcall.StreamCallPlugin;
 
@@ -20,10 +25,10 @@ public class DemoApplication extends Application {
         // Initialize Firebase
          try {
             StreamCallPlugin pl = (new StreamCallPlugin());
-            pl.initializeStreamVideo(this);
-             Log.i(TAG, "Firebase initialized successfully");
+            pl.initializeStreamVideo(this, this);
+            Log.i(TAG, "StreamVideo Plugin initialized successfully");
          } catch (Exception e) {
-             Log.e(TAG, "Failed to initialize Firebase: " + e.getMessage());
+             Log.e(TAG, "Failed to initialize StreamVideo Plugin", e);
          }
         Log.i(TAG, "Application initialization completed");
     }

@@ -28,10 +28,13 @@ import io.getstream.video.android.compose.ui.components.background.CallBackgroun
 import io.getstream.video.android.compose.ui.components.call.ringing.incomingcall.IncomingCallControls
 import io.getstream.video.android.compose.ui.components.call.ringing.incomingcall.IncomingCallDetails
 import io.getstream.video.android.core.Call
+import io.getstream.video.android.core.MemberState
 import io.getstream.video.android.core.RingingState
 import io.getstream.video.android.core.StreamVideo
 import io.getstream.video.android.core.call.state.AcceptCall
 import io.getstream.video.android.core.call.state.DeclineCall
+import io.getstream.video.android.model.User
+import java.time.OffsetDateTime
 
 @Composable
 fun IncomingCallView(
@@ -42,7 +45,6 @@ fun IncomingCallView(
     onHideIncomingCall: (() -> Unit)? = null
 ) {
     val ringingState = call?.state?.ringingState?.collectAsState(initial = RingingState.Idle)
-    val context = LocalContext.current
 
     LaunchedEffect(ringingState?.value) {
         Log.d("IncomingCallView", "Changing ringingState to $ringingState?.value")
@@ -63,7 +65,10 @@ fun IncomingCallView(
     }
 
     if (call !== null) {
-        val participants by call.state.members.collectAsState()
+//        val participants by call.state.participants.collectAsState()
+//        val members by call.state.members.collectAsState()
+//        call.state.session
+        val session by call.state.session.collectAsState()
         val isCameraEnabled by call.camera.isEnabled.collectAsState()
         val isVideoType = true
 
@@ -71,6 +76,8 @@ fun IncomingCallView(
         val navigationBarPadding = WindowInsets.navigationBars.asPaddingValues()
         val safeDrawingPadding = WindowInsets.safeDrawing.asPaddingValues()
         val layoutDirection = LocalLayoutDirection.current
+
+        // println("participants: ${participants.map { it.name.value }} Members: ${members}")
 
         VideoTheme {
             CallBackground(
@@ -94,7 +101,20 @@ fun IncomingCallView(
                                 end = safeDrawingPadding.calculateEndPadding(layoutDirection)
                             ),
                         isVideoType = isVideoType,
-                        participants = participants.filter { it.user.id != streamVideo?.userId }
+                        participants = (session?.participants?.map { MemberState(
+                            user = User(
+                                id = it.user.id,
+                                name = it.user.id,
+                                image = it.user.image
+                            ),
+                            custom = mapOf(),
+                            role = it.role,
+                            createdAt = org.threeten.bp.OffsetDateTime.now(),
+                            updatedAt = org.threeten.bp.OffsetDateTime.now(),
+                            deletedAt = org.threeten.bp.OffsetDateTime.now(),
+                            acceptedAt = org.threeten.bp.OffsetDateTime.now(),
+                            rejectedAt = org.threeten.bp.OffsetDateTime.now()
+                        ) }?.filter { it.user.id != streamVideo?.userId }) ?: listOf()
                     )
 
                     IncomingCallControls(

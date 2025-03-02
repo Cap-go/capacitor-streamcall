@@ -1,33 +1,69 @@
 package ee.forgr.capacitor.streamcall
 
 import android.app.Application
+import android.app.Notification
+import android.app.NotificationManager
 import android.content.Context
 import android.media.AudioAttributes
 import android.media.MediaPlayer
 import android.media.RingtoneManager
+import android.os.Build
 import android.os.Handler
 import android.os.Looper
 import android.util.Log
+import io.getstream.video.android.core.notifications.NotificationHandler
 
-class RingtonePlayer(private val application: Application) {
+class RingtonePlayer(
+    private val application: Application,
+    private val cancelIncomingCallService: () -> Unit = {  }
+) {
     companion object {
-        private const val PREFS_NAME = "StreamCallPrefs"
-        private const val KEY_NOTIFICATION_TIME = "notification_creation_time"
         private const val DEFAULT_RINGTONE_DURATION = 30000L // 30 seconds in milliseconds
     }
 
     private var mediaPlayer: MediaPlayer? = null
     private val handler = Handler(Looper.getMainLooper())
     private var stopRingtoneRunnable: Runnable? = null
+    private var isPaused = false
+    private var isStopped = true
+
+    private fun isOurNotification(notification: android.service.notification.StatusBarNotification): Boolean {
+        return notification.id == NotificationHandler.INCOMING_CALL_NOTIFICATION_ID
+    }
+
+    fun pauseRinging() {
+        Log.d("RingtonePlayer", "Pause ringing")
+        try {
+            if (!isStopped) {
+                mediaPlayer?.pause()
+                isPaused = true
+            }
+        } catch (e: Exception) {
+            Log.e("RingtonePlayer", "Error pausing ringtone: ${e.message}")
+        }
+    }
+
+    fun resumeRinging() {
+        Log.d("RingtonePlayer", "Resume ringing")
+        try {
+            if (!isStopped && isPaused) {
+                mediaPlayer?.start()
+                isPaused = false
+            }
+        } catch (e: Exception) {
+            Log.e("RingtonePlayer", "Error resuming ringtone: ${e.message}")
+        }
+    }
+
+    fun isPaused(): Boolean {
+        return isPaused
+    }
 
     fun startRinging() {
+        Log.d("RingtonePlayer", "Start ringing")
         try {
-            // Get notification creation time
-            val notificationTime = application.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-                .getLong(KEY_NOTIFICATION_TIME, 0)
-
-            Log.i("RingtonePlayer", "notificationTime: $notificationTime")
-
+            isStopped = false
+            isPaused = false
             if (mediaPlayer == null) {
                 val uri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_RINGTONE)
                 mediaPlayer = MediaPlayer().apply {
@@ -42,7 +78,31 @@ class RingtonePlayer(private val application: Application) {
                     prepare()
                 }
             }
-            
+
+            val notificationManager = application.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+            val notifs = notificationManager.activeNotifications.toList()
+            var notificationTime = 0L
+
+            for (notification in notifs) {
+                // First check if it's our notification
+                val isOurs = isOurNotification(notification)
+
+                // Only proceed with ringtone if it's our notification
+                if (!isOurs) {
+                    Log.d("RingtonePlayer", "Skipping notification as it's not our incoming call notification")
+                    continue
+                }
+
+                // Cancel our notification
+                try {
+                    Log.d("RingtonePlayer", "Canceling notification/service with id: ${notification.id}")
+                    this.cancelIncomingCallService()
+                } catch (e: Exception) {
+                    Log.e("RingtonePlayer", "Error cancelling notification: ${e.message}")
+                }
+                notificationTime = notification.postTime
+            }
+
             if (notificationTime > 0) {
                 val currentTime = System.currentTimeMillis()
                 val elapsedTime = currentTime - notificationTime
@@ -84,7 +144,10 @@ class RingtonePlayer(private val application: Application) {
     }
 
     fun stopRinging() {
+        Log.d("RingtonePlayer", "Stop ringing")
         try {
+            isStopped = true
+            isPaused = false
             stopRingtoneRunnable?.let { handler.removeCallbacks(it) }
             stopRingtoneRunnable = null
             
@@ -96,4 +159,6 @@ class RingtonePlayer(private val application: Application) {
             Log.e("RingtonePlayer", "Error stopping ringtone: ${e.message}")
         }
     }
+
+
 } 

@@ -2,6 +2,7 @@ package ee.forgr.capacitor.streamcall
 
 import android.content.Context
 import android.content.SharedPreferences
+import android.util.ArrayMap
 import io.getstream.video.android.model.User
 import org.json.JSONObject
 
@@ -82,19 +83,13 @@ class SecureUserRepository private constructor(context: Context) : UserRepositor
         return try {
             if (userJson != null && token != null) {
                 val jsonObject = JSONObject(userJson)
-                val customJson = jsonObject.optJSONObject("custom")
-                val customMap = customJson?.let { json ->
-                    json.keys().asSequence().associateWith { key ->
-                        json.getString(key)
-                    }
-                }
 
                 val user = User(
                     id = jsonObject.getString("id"),
                     name = jsonObject.optString("name"),
                     image = jsonObject.optString("image"),
                     role = jsonObject.optString("role"),
-                    custom = customMap
+                    custom = ArrayMap()
                 )
                 UserCredentials(user, token)
             } else {
