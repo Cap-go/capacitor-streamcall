@@ -708,7 +708,7 @@ export class StreamCallWeb extends WebPlugin implements StreamCallPlugin {
 
     return {
       callId: this.currentCall.id,
-      state
+      state,
     };
   }
 }
