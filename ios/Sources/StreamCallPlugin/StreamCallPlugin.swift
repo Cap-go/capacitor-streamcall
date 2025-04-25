@@ -268,42 +268,6 @@ public class StreamCallPlugin: CAPPlugin, CAPBridgedPlugin {
                         continue
                     }
 
-                    if let participantLeftEvent = event.rawValue as? CallSessionParticipantLeftEvent {
-                        let callIdSplit = participantLeftEvent.callCid.split(separator: ":")
-                        if callIdSplit.count != 2 {
-                            print("CallSessionParticipantLeftEvent invalid cID \(participantLeftEvent.callCid)")
-                            continue
-                        }
-
-                        let callType = callIdSplit[0]
-                        let callId = callIdSplit[1]
-
-                        let call = streamVideo.call(callType: String(callType), callId: String(callId))
-                        guard let participantsCount = await MainActor.run(body: {
-                            if call.id == streamVideo.state.activeCall?.id {
-                                return (call.state.session?.participants.count) ?? streamVideo.state.activeCall?.state.participants.count
-                            } else {
-                                return (call.state.session?.participants.count)
-                            }
-                        }) else {
-                            print("CallSessionParticipantLeftEvent no participantsCount")
-                            continue
-                        }
-
-                        if participantsCount - 1 <= 1 {
-
-                            print("We are left solo in a call. Ending. cID: \(participantLeftEvent.callCid). participantsCount: \(participantsCount)")
-
-                            Task {
-                                if let activeCall = streamVideo.state.activeCall {
-                                    activeCall.leave()
-                                } else {
-                                    print("Active call isn't the one?")
-                                }
-                            }
-                        }
-                    }
-
                     if let acceptedEvent = event.rawValue as? CallAcceptedEvent {
                         let userId = acceptedEvent.user.id
                         let callCid = acceptedEvent.callCid
@@ -832,10 +796,11 @@ public class StreamCallPlugin: CAPPlugin, CAPBridgedPlugin {
         }
         print("Initializing with saved credentials for user: \(savedCredentials.user.name)")
 
+        LogConfig.level = .debug
         self.streamVideo = StreamVideo(
             apiKey: apiKey,
             user: savedCredentials.user,
-            token: UserToken(stringLiteral: savedCredentials.tokenValue)
+            token: UserToken(stringLiteral: savedCredentials.tokenValue),
         )
 
         state = .initialized

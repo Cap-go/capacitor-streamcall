@@ -31,6 +31,7 @@ class CallOverlayViewModel: ObservableObject {
             participantsSubscription = call.state.$callSettings.sink { [weak self] callSettings in
                 print("Call settings update")
                 self?.viewModel = CallViewModel(callSettings: callSettings)
+                self?.viewModel?.participantAutoLeavePolicy = LastParticipantAutoLeavePolicy()
                 self?.viewModel?.setActiveCall(call)
             }
         } else {
