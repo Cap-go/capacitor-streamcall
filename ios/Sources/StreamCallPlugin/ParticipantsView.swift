@@ -34,8 +34,8 @@ extension View {
                                 value: [ViewFramePreferenceData(label: label,
                                                                 frame: geo.frame(in: .global))])
                     .onAppear {
-                        print("ParticipantsView - Collecting frame for label: \(label)")
-                        print("Frame: \(geo.frame(in: .global))")
+                        StreamCallPlugin.dualprint("ParticipantsView - Collecting frame for label: \(label)")
+                        StreamCallPlugin.dualprint("Frame: \(geo.frame(in: .global))")
                     }
             }
         )

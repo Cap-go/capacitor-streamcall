@@ -29,7 +29,7 @@ public struct CustomVideoCallParticipantView<Factory: ViewFactory>: View {
         customData: [String: RawJSON],
         call: Call?
     ) {
-        print("size: \(availableFrame.size)")
+        StreamCallPlugin.dualprint("size: \(availableFrame.size)")
         self.viewFactory = viewFactory
         self.participant = participant
         self.id = id ?? participant.id

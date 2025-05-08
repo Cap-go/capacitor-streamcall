@@ -57,7 +57,7 @@ struct CallOverlayView: View {
     }
 
     private func changeTrackVisibility(_ participant: CallParticipant?, isVisible: Bool) {
-        print("changeTrackVisibility for \(String(describing: participant?.userId)), visible: \(isVisible)")
+        StreamCallPlugin.dualprint("changeTrackVisibility for \(String(describing: participant?.userId)), visible: \(isVisible)")
         guard let participant = participant,
               let call = viewModel.call else { return }
         Task {
