@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources xmlns:tools="http://schemas.android.com/tools">
     <string name="CAPACITOR_STREAM_VIDEO_APIKEY" />
+    <string name="CAPACITOR_STREAM_VIDEO_MAIN_ACTIVITY_CLASS" />
     <string name="stream_video_incoming_call_notification_channel_title">Incoming Calls</string>
     <string name="stream_video_incoming_call_notification_channel_description">Incoming audio and video call alerts</string>
     <string name="stream_video_incoming_call_low_priority_notification_channel_description">Incoming audio and video call alerts</string>

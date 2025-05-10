@@ -40,8 +40,7 @@ public class DemoApplication extends Application {
         Log.i(TAG, "Initializing application...");
         // Initialize Firebase
          try {
-            StreamCallPlugin pl = (new StreamCallPlugin());
-            pl.initializeStreamVideo(this, this);
+            StreamCallPlugin.Companion.initializeStreamCallClient(this);
             Log.i(TAG, "StreamVideo Plugin initialized successfully");
          } catch (Exception e) {
              Log.e(TAG, "Failed to initialize StreamVideo Plugin", e);

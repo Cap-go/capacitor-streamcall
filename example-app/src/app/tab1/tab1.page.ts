@@ -15,6 +15,7 @@ export class Tab1Page {
   private readonly API_URL = 'https://magic-login-srvv2-48.localcan.dev';
   private readonly API_KEY = 'vq4zdsazqxd7';
   transparent = false;
+  counter = 0;
   currentUser: {
     userId: string;
     name: string;
@@ -161,6 +162,10 @@ export class Tab1Page {
       document.head.removeChild(styleElement);
     }
     this.transparent = false;
+  }
+
+  incrementCounter() {
+    this.counter++;
   }
 
   private async presentToast(message: string, color: 'success' | 'danger') {

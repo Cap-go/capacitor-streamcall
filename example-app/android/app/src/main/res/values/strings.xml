@@ -5,4 +5,5 @@
     <string name="package_name">io.ionic.starter</string>
     <string name="custom_url_scheme">io.ionic.starter</string>
     <string name="CAPACITOR_STREAM_VIDEO_APIKEY">vq4zdsazqxd7</string>
+    <string name="CAPACITOR_STREAM_VIDEO_MAIN_ACTIVITY_CLASS">io.ionic.starter.MainActivity</string>
 </resources>

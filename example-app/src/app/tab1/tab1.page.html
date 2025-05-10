@@ -20,6 +20,12 @@
   </ion-header>
 
   <div class="magicDiv">
+    <div class="counter-section">
+      <h2>Counter: {{ counter }}</h2>
+      <ion-button (click)="incrementCounter()" color="primary">
+        Increment Counter
+      </ion-button>
+    </div>
     <div class="login-buttons">
       <ng-container *ngIf="!currentUser">
         <ion-button (click)="login('user1')" color="success">Login as User 1</ion-button>
