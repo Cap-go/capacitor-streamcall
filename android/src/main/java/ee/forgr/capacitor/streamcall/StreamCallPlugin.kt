@@ -13,23 +13,23 @@ import io.getstream.video.android.model.StreamCallId
 import io.getstream.video.android.model.User
 import io.getstream.video.android.ui.common.StreamCallActivity
 import android.content.Intent
+import android.content.IntentFilter
+import android.graphics.Color
+import androidx.localbroadcastmanager.content.LocalBroadcastManager
 import io.getstream.video.android.core.notifications.NotificationHandler
 import io.getstream.video.android.ui.common.StreamCallActivityConfiguration
 import kotlinx.coroutines.MainScope
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.cancel
+import org.json.JSONObject
 
 @CapacitorPlugin(name = "StreamCall")
 public class StreamCallPlugin : Plugin() {
-    private val scope = MainScope() // Create a single scope for the plugin lifecycle
-    
-    // Clean up resources when plugin is destroyed
-    override fun handleOnDestroy() {
-        scope.cancel() // Cancel the scope when the plugin is destroyed
-        super.handleOnDestroy()
-    }
-
     companion object {
+        const val ACTION_SEND_CAPACITOR_EVENT = "SEND_CAPACITOR_EVENT"
+        const val EXTRA_EVENT_NAME = "event_name"
+        const val EXTRA_EVENT = "event"
+
         fun initializeStreamCallClient(contextToUse: Context) {
             android.util.Log.v("StreamCallPlugin", "Attempting to initialize streamVideo")
 
@@ -62,6 +62,55 @@ public class StreamCallPlugin : Plugin() {
         }
     }
 
+    private val scope = MainScope() // Create a single scope for the plugin lifecycle
+
+    private val eventReceiver = object : android.content.BroadcastReceiver() {
+        override fun onReceive(context: Context?, intent: Intent?) {
+            if (intent?.action == ACTION_SEND_CAPACITOR_EVENT) {
+                val event = intent.getStringExtra(EXTRA_EVENT)
+                val eventName = intent.getStringExtra(EXTRA_EVENT_NAME)
+                if (event != null && eventName != null) {
+                    try {
+                        val jsonObject = JSONObject(event)
+                        val jsObject = JSObject.fromJSONObject(jsonObject)
+
+                        if (eventName == "callEvent" && jsObject.getString("state", "") == "joined") {
+                            // This is a special case where we make the webview transparent. Required for the integration between the 2 activities
+                            bridge?.webView?.setBackgroundColor(Color.TRANSPARENT)
+                            this@StreamCallPlugin.activity.window.attributes = this@StreamCallPlugin.activity.window.attributes.apply {
+                                alpha = 0.5f
+                            }
+                        }
+
+                        this@StreamCallPlugin.notifyListeners(eventName, jsObject)
+                        android.util.Log.d("StreamCallPlugin", "Received event: $event")
+                    } catch (t: Throwable) {
+                        android.util.Log.e("StreamCallPlugin", "Received a local intent for ACTION_SEND_CAPACITOR_EVENT, but cannot parse JSON. !!!!!!!!!!!!")
+                        return
+                    }
+                } else {
+                    android.util.Log.e("StreamCallPlugin", "Received a local intent for ACTION_SEND_CAPACITOR_EVENT, but not found all extras. !!!!!!!!!!!!")
+                    return
+                }
+            }
+        }
+    }
+
+    // Clean up resources when plugin is destroyed
+    override fun handleOnDestroy() {
+        scope.cancel() // Cancel the scope when the plugin is destroyed
+        LocalBroadcastManager.getInstance(context).unregisterReceiver(eventReceiver)
+        super.handleOnDestroy()
+    }
+
+    override fun load() {
+        // here add communication with call activity
+        LocalBroadcastManager.getInstance(context).registerReceiver(
+            eventReceiver,
+            IntentFilter(ACTION_SEND_CAPACITOR_EVENT)
+        )
+        super.load()
+    }
 
     @PluginMethod
     fun login(call: PluginCall) {

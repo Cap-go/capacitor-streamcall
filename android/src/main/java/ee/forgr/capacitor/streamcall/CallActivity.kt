@@ -1,8 +1,10 @@
 package ee.forgr.capacitor.streamcall
 
+import android.annotation.SuppressLint
 import android.app.ActivityManager
 import android.content.Context
 import android.content.Intent
+import android.os.Build
 import android.os.Bundle
 import android.os.PersistableBundle
 import androidx.compose.foundation.layout.BoxScope
@@ -11,6 +13,8 @@ import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
@@ -36,6 +40,7 @@ import io.getstream.video.android.compose.ui.components.call.renderer.VideoRende
 import io.getstream.video.android.compose.ui.components.video.VideoScalingType
 import io.getstream.video.android.core.Call
 import io.getstream.video.android.core.ParticipantState
+import io.getstream.video.android.core.RingingState
 import io.getstream.video.android.core.StreamVideo
 import io.getstream.video.android.core.call.state.CallAction
 import io.getstream.video.android.core.notifications.NotificationHandler
@@ -43,11 +48,15 @@ import io.getstream.video.android.ui.common.StreamCallActivity
 import io.getstream.video.android.ui.common.StreamCallActivityConfiguration
 import io.getstream.video.android.ui.common.util.StreamCallActivityDelicateApi
 import kotlinx.coroutines.runBlocking
+import androidx.localbroadcastmanager.content.LocalBroadcastManager
+import com.getcapacitor.JSObject
 
 @OptIn(StreamCallActivityDelicateApi::class)
 class CallActivity : ComposeStreamCallActivity() {
 
-    override val uiDelegate: StreamDemoUiDelegate = StreamDemoUiDelegate()
+    override val uiDelegate: StreamDemoUiDelegate = StreamDemoUiDelegate(
+        moveMainActivityToTop = { moveMainActivityToTop() }
+    )
     override val configuration: StreamCallActivityConfiguration =
         StreamCallActivityConfiguration(
             closeScreenOnCallEnded = false,
@@ -75,14 +84,17 @@ class CallActivity : ComposeStreamCallActivity() {
                 this@CallActivity.finish()
             }
         }
-        listRunningActivities()
         super.onPreCreate(savedInstanceState, persistentState)
     }
 
-    private fun listRunningActivities() {
+    @SuppressLint("MissingPermission")
+    private fun moveMainActivityToTop() {
         val activityManager = getSystemService(Context.ACTIVITY_SERVICE) as ActivityManager
         val appTasks = activityManager.getAppTasks()
-        
+
+        val mainActivityClass = getString(R.string.CAPACITOR_STREAM_VIDEO_MAIN_ACTIVITY_CLASS)
+            ?: throw IllegalStateException("CAPACITOR_STREAM_VIDEO_MAIN_ACTIVITY_CLASS not found in resources")
+
         android.util.Log.d("CallActivity", "Currently running activities in our app:")
         for (taskInfo in appTasks) {
             val taskInfo = taskInfo.taskInfo
@@ -94,36 +106,63 @@ class CallActivity : ComposeStreamCallActivity() {
 
             // If CallActivity is the base activity, we need to start Capacitor in background
             if (taskInfo.baseActivity?.className == "ee.forgr.capacitor.streamcall.CallActivity") {
-                val mainActivityClass = getString(R.string.CAPACITOR_STREAM_VIDEO_MAIN_ACTIVITY_CLASS)
-                    ?: throw IllegalStateException("CAPACITOR_STREAM_VIDEO_MAIN_ACTIVITY_CLASS not found in resources")
+                // TODO: check if it's working
+
                 
-                try {
-                    val intent = Intent(this, Class.forName(mainActivityClass)).apply {
-                        flags = Intent.FLAG_ACTIVITY_NEW_TASK or 
-                               Intent.FLAG_ACTIVITY_NO_ANIMATION or 
-                               Intent.FLAG_ACTIVITY_NO_USER_ACTION or
-                               Intent.FLAG_ACTIVITY_NO_HISTORY
+                // Find if main activity is already running
+                val mainTask = appTasks.find { it.taskInfo.baseActivity?.className == mainActivityClass }
+                
+                if (mainTask != null) {
+                    // If main activity exists, bring it to front
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                        activityManager.moveTaskToFront(mainTask.taskInfo.taskId, ActivityManager.MOVE_TASK_WITH_HOME)
+                    } else {
+                        activityManager.moveTaskToFront(mainTask.taskInfo.id, ActivityManager.MOVE_TASK_WITH_HOME)
                     }
-                    // startActivity(intent)
-                    // Immediately bring call activity back to front
-                    val callIntent = Intent(this, CallActivity::class.java).apply {
-                        flags = Intent.FLAG_ACTIVITY_REORDER_TO_FRONT
-                    }
-                    // startActivity(callIntent)
-                } catch (e: Exception) {
-                    android.util.Log.e("CallActivity", "Failed to start main activity", e)
+                } else {
+                    // If main activity doesn't exist, throw exception
+                    throw IllegalStateException("Main activity needs to be started but this is not supported yet")
                 }
+            } else if (taskInfo.baseActivity?.className == mainActivityClass) {
+                // move to foreground here
+                val intent = Intent(this, Class.forName(taskInfo.baseActivity?.className ?: return)).apply {
+                    flags = Intent.FLAG_ACTIVITY_REORDER_TO_FRONT
+                }
+                startActivity(intent)
+                val event = JSObject()
+                event.put("state", "joined")
+                sendCapacitorEvent("callEvent", event)
             }
         }
     }
 
-    class StreamDemoUiDelegate() : StreamCallActivityComposeDelegate() {
+    private fun sendCapacitorEvent(eventName: String, event: JSObject) {
+        val intent = Intent(StreamCallPlugin.ACTION_SEND_CAPACITOR_EVENT).apply {
+            putExtra(StreamCallPlugin.EXTRA_EVENT, event.toString())
+            putExtra(StreamCallPlugin.EXTRA_EVENT_NAME, eventName)
+        }
+        LocalBroadcastManager.getInstance(this).sendBroadcast(intent)
+    }
+
+    class StreamDemoUiDelegate(
+        val moveMainActivityToTop: () -> Unit
+    ) : StreamCallActivityComposeDelegate() {
 
         @Composable
         override fun StreamCallActivity.VideoCallContent(call: Call) {
             val customOnCallAction: (CallAction) -> Unit = {
                 onCallAction(call, it)
             };
+
+            val callId = call.id
+            val callStatus by call.state.ringingState.collectAsState()
+
+            if (callStatus == RingingState.Active) {
+                // Call moveMainActivityToTop once per render, caching by callId
+                LaunchedEffect(callId) {
+                    moveMainActivityToTop()
+                }
+            }
 
             val videoRendererNoAction: @Composable (Modifier, Call, ParticipantState, VideoRendererStyle) -> Unit =
                 { modifier, _, participant, _ ->
