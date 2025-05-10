@@ -75,11 +75,24 @@ public class StreamCallPlugin : Plugin() {
                         val jsObject = JSObject.fromJSONObject(jsonObject)
 
                         if (eventName == "callEvent" && jsObject.getString("state", "") == "joined") {
-                            // This is a special case where we make the webview transparent. Required for the integration between the 2 activities
+                            android.util.Log.d("StreamCallPlugin", "Setting up activity transparency")
+                            
+                            // Make WebView transparent
                             bridge?.webView?.setBackgroundColor(Color.TRANSPARENT)
-                            this@StreamCallPlugin.activity.window.attributes = this@StreamCallPlugin.activity.window.attributes.apply {
-                                alpha = 0.5f
+                            android.util.Log.d("StreamCallPlugin", "Set WebView background to transparent")
+                            
+                            // Ensure window is using the transparent theme
+                            this@StreamCallPlugin.activity.window.setFlags(
+                                android.view.WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS,
+                                android.view.WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS
+                            )
+
+                            val parent = bridge?.webView?.parent
+                            if (parent is android.view.View) {
+                                parent.setBackgroundColor(android.graphics.Color.TRANSPARENT)
                             }
+
+                            android.util.Log.d("StreamCallPlugin", "Set window flags for transparency")
                         }
 
                         this@StreamCallPlugin.notifyListeners(eventName, jsObject)

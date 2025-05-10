@@ -54,6 +54,11 @@ import com.getcapacitor.JSObject
 @OptIn(StreamCallActivityDelicateApi::class)
 class CallActivity : ComposeStreamCallActivity() {
 
+    override fun onPause(call: Call) {
+        android.util.Log.i("CustomCallActivity", "Pausing activity ??")
+        super.onPause(call)
+    }
+
     override val uiDelegate: StreamDemoUiDelegate = StreamDemoUiDelegate(
         moveMainActivityToTop = { moveMainActivityToTop() }
     )
