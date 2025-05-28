@@ -8,6 +8,10 @@ use_frameworks!
 # Requires CocoaPods 1.6 or newer
 install! 'cocoapods', :disable_input_output_paths => true
 
+# Use the develop branch for StreamVideo SDK
+pod 'StreamVideo', :git => 'https://github.com/GetStream/stream-video-swift.git', :branch => 'develop'
+pod 'StreamVideoSwiftUI', :git => 'https://github.com/GetStream/stream-video-swift.git', :branch => 'develop'
+
 def capacitor_pods
   pod 'Capacitor', :path => '../../../node_modules/@capacitor/ios'
   pod 'CapacitorCordova', :path => '../../../node_modules/@capacitor/ios'

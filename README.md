@@ -341,12 +341,13 @@ Get the current call status
 
 #### CallOptions
 
-| Prop          | Type                                          | Description                                      |
-| ------------- | --------------------------------------------- | ------------------------------------------------ |
-| **`userIds`** | <code>string[]</code>                         | User ID of the person to call                    |
-| **`type`**    | <code><a href="#calltype">CallType</a></code> | Type of call, defaults to 'default'              |
-| **`ring`**    | <code>boolean</code>                          | Whether to ring the other user, defaults to true |
-| **`team`**    | <code>string</code>                           | Team name to call                                |
+| Prop          | Type                                          | Description                                                                                                                                                                         |
+| ------------- | --------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **`userIds`** | <code>string[]</code>                         | User ID of the person to call                                                                                                                                                       |
+| **`type`**    | <code><a href="#calltype">CallType</a></code> | Type of call, defaults to 'default'                                                                                                                                                 |
+| **`ring`**    | <code>boolean</code>                          | Whether to ring the other user, defaults to true                                                                                                                                    |
+| **`team`**    | <code>string</code>                           | Team name to call                                                                                                                                                                   |
+| **`video`**   | <code>boolean</code>                          | Whether to use the 'video' call type. This will change the call type within CallKit iOS, but it will not change the call type within Android. !!! This is not supported on Android. |
 
 
 #### CallEvent

@@ -105,7 +105,8 @@ export class Tab1Page {
       await StreamCall.call({
         userIds: userIds,
         type: 'default',
-        ring: true
+        ring: true,
+        video: true
       });
       await this.presentToast(`Calling ${userIds}...`, 'success');
     } catch (error) {

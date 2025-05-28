@@ -105,6 +105,8 @@ export interface CallOptions {
   ring?: boolean;
   /** Team name to call */
   team?: string;
+  /** Whether to use the 'video' call type. This will change the call type within CallKit iOS, but it will not change the call type within Android. !!! This is not supported on Android. */
+  video?: boolean;
 }
 
 /**
