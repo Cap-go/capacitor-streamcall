@@ -116,7 +116,8 @@ export class Tab1Page {
       await StreamCall.call({
         userIds: userIds,
         type: 'default',
-        ring: true
+        ring: true,
+        video: true
       });
     } catch (error) {
       console.error(`Failed to call ${userIds}:`, error);

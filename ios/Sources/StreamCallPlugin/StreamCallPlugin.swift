@@ -55,6 +55,7 @@ public class StreamCallPlugin: CAPPlugin, CAPBridgedPlugin {
 
     @Injected(\.callKitAdapter) var callKitAdapter
     @Injected(\.callKitPushNotificationAdapter) var callKitPushNotificationAdapter
+    @Injected(\.callKitService) var callKitService
     private var webviewDelegate: WebviewNavigationDelegate?
 
     // Declare as optional and initialize in load() method
@@ -454,6 +455,7 @@ public class StreamCallPlugin: CAPPlugin, CAPBridgedPlugin {
             let callType = call.getString("type") ?? "default"
             let shouldRing = call.getBool("ring") ?? true
             let team = call.getString("team")
+            let video = call.getBool("video") ?? false
 
             // Generate a unique call ID
             let callId = UUID().uuidString
@@ -466,14 +468,16 @@ public class StreamCallPlugin: CAPPlugin, CAPBridgedPlugin {
                     print("- Users: \(members)")
                     print("- Should Ring: \(shouldRing)")
                     print("- Team: \(team)")
+                    print("- Video: \(video)")
 
                     // Create the call object
-                    await self.callViewModel?.startCall(
-                        callType: callType,
-                        callId: callId,
-                        members: members.map { Member(userId: $0, role: nil, customData: [:], updatedAt: nil) },
-                        ring: shouldRing
-                    )
+await self.callViewModel?.startCall(
+    callType: callType,
+    callId: callId,
+    members: members.map { Member(userId: $0, role: nil, customData: [:], updatedAt: nil) },
+    ring: shouldRing,
+    video: video
+)
                     
                     // Wait for call state to be populated by WebSocket events
                     let callStream = streamVideo!.call(callType: callType, callId: callId)
@@ -803,6 +807,7 @@ public class StreamCallPlugin: CAPPlugin, CAPBridgedPlugin {
 
         // Register for incoming calls
         callKitAdapter.registerForIncomingCalls()
+        callKitService.supportsVideo = true
     }
 
     private func setupViews() {

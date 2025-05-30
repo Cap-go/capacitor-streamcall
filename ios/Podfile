@@ -5,8 +5,8 @@ def capacitor_pods
   use_frameworks!
   pod 'Capacitor', :path => '../node_modules/@capacitor/ios'
   pod 'CapacitorCordova', :path => '../node_modules/@capacitor/ios'
-  pod 'StreamVideo', :git => 'https://github.com/GetStream/stream-video-swift.git', :tag => '1.16.0'
-  pod 'StreamVideoSwiftUI', :git => 'https://github.com/GetStream/stream-video-swift.git', :tag => '1.16.0'
+  pod 'StreamVideo', :git => 'https://github.com/GetStream/stream-video-swift.git', :branch => 'develop'
+  pod 'StreamVideoSwiftUI', :git => 'https://github.com/GetStream/stream-video-swift.git', :branch => 'develop'
 end
 
 target 'Plugin' do
