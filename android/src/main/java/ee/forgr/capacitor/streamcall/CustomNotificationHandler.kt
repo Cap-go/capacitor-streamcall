@@ -28,7 +28,7 @@ class CustomNotificationHandler(
         private const val PREFS_NAME = "StreamCallPrefs"
         private const val KEY_NOTIFICATION_TIME = "notification_creation_time"
     }
-    private var allowSound = true;
+    private var allowSound = true
  
     override fun getRingingCallNotification(
         ringingState: RingingState,
@@ -315,7 +315,7 @@ class CustomNotificationHandler(
         )
     }
  
-    public fun clone(): CustomNotificationHandler {
+    fun clone(): CustomNotificationHandler {
         Log.d("CustomNotificationHandler", "clone called")
         return CustomNotificationHandler(this.application, this.endCall, this.incomingCall)
     }

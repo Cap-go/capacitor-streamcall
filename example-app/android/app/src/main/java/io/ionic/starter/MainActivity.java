@@ -1,43 +1,19 @@
 package io.ionic.starter;
 
-import android.app.KeyguardManager;
-import android.os.Build;
 import android.os.Bundle;
 import android.content.Intent;
 import android.util.Log;
 
-import com.getcapacitor.PluginHandle;
-import com.google.firebase.FirebaseApp;
-
 import com.getcapacitor.BridgeActivity;
-
-import ee.forgr.capacitor.streamcall.StreamCallPlugin;
 
 public class MainActivity extends BridgeActivity {
 
   private static final String TAG = "MainActivity";
 
-//  MainActivity() {
-//
-//  }
 
   @Override
   protected void onCreate(Bundle savedInstanceState) {
     super.onCreate(savedInstanceState);
-//    StreamCallPlugin pl = (new StreamCallPlugin());
-//    pl.setBridge(this.getBridge());
-//    pl.initializeStreamVideo(true);
-//
-//    Log.d(TAG, "onCreate called");
-//    if (savedInstanceState != null) {
-//      Log.d(TAG, "savedInstanceState contents:");
-//      logBundle(savedInstanceState);
-//    } else {
-//      Log.d(TAG, "savedInstanceState is null");
-//    }
-
-//    FirebaseApp.initializeApp(this);
-
     // Log the initial intent
     Intent intent = getIntent();
     logIntent(intent);

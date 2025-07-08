@@ -2,6 +2,8 @@ import android.view.MotionEvent
 import android.view.ViewGroup
 import androidx.coordinatorlayout.widget.CoordinatorLayout
 import android.util.Log
+import androidx.core.view.isNotEmpty
+import androidx.core.view.isVisible
 
 class TouchInterceptWrapper(private val originalViewGroup: ViewGroup) : CoordinatorLayout(
     originalViewGroup.context
@@ -9,7 +11,7 @@ class TouchInterceptWrapper(private val originalViewGroup: ViewGroup) : Coordina
     init {
         // Copy layout parameters and children
         layoutParams = originalViewGroup.layoutParams
-        while (originalViewGroup.childCount > 0) {
+        while (originalViewGroup.isNotEmpty()) {
             val child = originalViewGroup.getChildAt(0)
             originalViewGroup.removeViewAt(0)
             addView(child)
@@ -23,8 +25,8 @@ class TouchInterceptWrapper(private val originalViewGroup: ViewGroup) : Coordina
         // Traverse children from top (highest z) to bottom
         for (i in childCount - 1 downTo 0) {
             val child = getChildAt(i)
-            Log.d("TouchInterceptWrapper", "Checking child $i: ${child::class.java.simpleName}, visibility: ${child.visibility == VISIBLE}")
-            if (child.visibility == VISIBLE) {
+            Log.d("TouchInterceptWrapper", "Checking child $i: ${child::class.java.simpleName}, visibility: ${child.isVisible}")
+            if (child.isVisible) {
                 val copy = MotionEvent.obtain(ev)
                 // It's important to transform event coordinates to the child's coordinate system
                 copy.offsetLocation(-child.left.toFloat(), -child.top.toFloat())

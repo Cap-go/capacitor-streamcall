@@ -5,6 +5,7 @@ import android.content.SharedPreferences
 import android.util.ArrayMap
 import io.getstream.video.android.model.User
 import org.json.JSONObject
+import androidx.core.content.edit
 
 data class UserCredentials(
     val user: User,
@@ -65,15 +66,14 @@ class SecureUserRepository private constructor(context: Context) : UserRepositor
             put("custom", customJson)
         }
 
-        with(sharedPreferences.edit()) {
+        sharedPreferences.edit {
             putString(KEY_USER, userJson.toString())
             putString(KEY_TOKEN, user.tokenValue)
-            apply()
         }
     }
 
     override fun save(token: String) {
-        sharedPreferences.edit().putString(KEY_TOKEN, token).apply()
+        sharedPreferences.edit { putString(KEY_TOKEN, token) }
     }
 
     override fun loadCurrentUser(): UserCredentials? {
@@ -102,10 +102,9 @@ class SecureUserRepository private constructor(context: Context) : UserRepositor
     }
 
     override fun removeCurrentUser() {
-        with(sharedPreferences.edit()) {
+        sharedPreferences.edit {
             remove(KEY_USER)
             remove(KEY_TOKEN)
-            apply()
         }
     }
 } 

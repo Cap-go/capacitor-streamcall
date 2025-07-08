@@ -1043,10 +1043,6 @@ public class StreamCallPlugin: CAPPlugin, CAPBridgedPlugin {
         return UserDefaults.standard.string(forKey: dynamicApiKeyKey)
     }
     
-    func clearDynamicApiKey() {
-        UserDefaults.standard.removeObject(forKey: dynamicApiKeyKey)
-    }
-    
     func getEffectiveApiKey() -> String? {
         // A) Check if the key exists in UserDefaults
         if let dynamicApiKey = getDynamicApiKey(), !dynamicApiKey.trimmingCharacters(in: CharacterSet.whitespacesAndNewlines).isEmpty {
