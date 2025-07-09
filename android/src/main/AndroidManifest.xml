@@ -20,13 +20,13 @@
             android:exported="false" />
 
         <receiver
-            android:name=".AcceptCallReceiver"
+            android:name="ee.forgr.capacitor.streamcall.AcceptCallReceiver"
             android:enabled="true"
-            android:exported="true">
-            <intent-filter>
-                <action android:name="io.getstream.video.android.action.ACCEPT_CALL" />
-            </intent-filter>
-        </receiver>
+            android:exported="false" />
+        <receiver
+            android:name="ee.forgr.capacitor.streamcall.DeclineCallReceiver"
+            android:enabled="true"
+            android:exported="false" />
     </application>
 
     <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" />

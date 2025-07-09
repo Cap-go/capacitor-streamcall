@@ -1,12 +1,8 @@
 package io.ionic.starter;
 
-import android.app.Activity;
 import android.app.Application;
-import android.os.Bundle;
 import android.util.Log;
 
-import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
 import com.facebook.flipper.plugins.inspector.InspectorFlipperPlugin;
 
 import com.facebook.flipper.android.AndroidFlipperClient;
@@ -16,7 +12,8 @@ import com.facebook.flipper.plugins.network.NetworkFlipperPlugin;
 import com.facebook.flipper.plugins.sharedpreferences.SharedPreferencesFlipperPlugin;
 import com.facebook.soloader.SoLoader;
 
-import ee.forgr.capacitor.streamcall.StreamCallPlugin;
+import ee.forgr.capacitor.streamcall.ApiKeyManager;
+import ee.forgr.capacitor.streamcall.StreamCallManager;
 
 public class DemoApplication extends Application {
     private static final String TAG = "DemoApplication";
@@ -41,10 +38,11 @@ public class DemoApplication extends Application {
         // Initialize Firebase
         com.google.firebase.FirebaseApp.initializeApp(this);
          try {
-            StreamCallPlugin.preLoadInit(this, this);
-            Log.i(TAG, "StreamVideo Plugin preLoadInit invoked successfully");
+            ApiKeyManager.INSTANCE.initialize(this);
+            StreamCallManager.INSTANCE.initialize(this);
+            Log.i(TAG, "StreamCallManager initialized successfully");
          } catch (Exception e) {
-             Log.e(TAG, "Failed to pre-initialize StreamVideo Plugin", e);
+             Log.e(TAG, "Failed to initialize StreamCallManager", e);
          }
         Log.i(TAG, "Application initialization completed");
     }

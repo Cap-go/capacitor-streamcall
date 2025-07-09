@@ -293,28 +293,6 @@ public class StreamCallPlugin: CAPPlugin, CAPBridgedPlugin {
                                 // Notify with caller information
                                 self.updateCallStatusAndNotify(callId: incomingCall.id, state: "ringing", caller: caller, members: members)
                             }
-                        } else if newState == .idle {
-                            print("Call state changed to idle. CurrentCallId: \(self.currentCallId), ActiveCall: \(String(describing: self.streamVideo?.state.activeCall?.cId))")
-                            
-                            // Disable touch interceptor when call becomes inactive
-                            self.touchInterceptView?.setCallActive(false)
-                            
-                            // Only notify about call ending if we have a valid stored call ID and there's truly no active call
-                            // This prevents false "left" events during normal state transitions
-                            if !self.currentCallId.isEmpty && self.streamVideo?.state.activeCall == nil {
-                                print("Call actually ending: \(self.currentCallId)")
-                                
-                                // Notify that call has ended - use the stored call ID
-                                self.updateCallStatusAndNotify(callId: self.currentCallId, state: "left")
-                                
-                                // Reset notification flag when call ends
-                                self.hasNotifiedCallJoined = false
-                                
-                                // Remove the call overlay view when not in a call
-                                self.ensureViewRemoved()
-                            } else {
-                                print("Not sending left event - CurrentCallId: \(self.currentCallId), ActiveCall exists: \(self.streamVideo?.state.activeCall != nil)")
-                            }
                         }
                     } catch {
                         log.error("Error handling call state update: \(String(describing: error))")
@@ -621,46 +599,21 @@ public class StreamCallPlugin: CAPPlugin, CAPBridgedPlugin {
             try requireInitialized()
 
             Task {
-                // Check both active call and callViewModel's call state to handle outgoing calls
-                let activeCall = streamVideo?.state.activeCall
-                let viewModelCall = await callViewModel?.call
-                
-                // Helper function to determine if we should end or leave the call
-                func shouldEndCall(for streamCall: Call) async throws -> Bool {
+                if let activeCall = streamVideo?.state.activeCall {
                     do {
-                        let callInfo = try await streamCall.get()
+                        let callInfo = try await activeCall.get()
                         let currentUserId = streamVideo?.user.id
-                        let createdBy = callInfo.call.createdBy.id
-                        let isCreator = createdBy == currentUserId
+                        let isCreator = callInfo.call.createdBy.id == currentUserId
+                        let totalParticipants = await activeCall.state.participants.count
                         
-                        // Use call.state.participants.count to get participant count (as per StreamVideo iOS SDK docs)
-                        let totalParticipants = await streamCall.state.participants.count
-                        let shouldEnd = isCreator || totalParticipants <= 2
-                        
-                        print("Call \(streamCall.cId) - Creator: \(createdBy), CurrentUser: \(currentUserId ?? "nil"), IsCreator: \(isCreator), TotalParticipants: \(totalParticipants), ShouldEnd: \(shouldEnd)")
-                        
-                        return shouldEnd
-                    } catch {
-                        print("Error getting call info for \(streamCall.cId), defaulting to leave: \(error)")
-                        return false // Fallback to leave if we can't determine
-                    }
-                }
-                
-                if let activeCall = activeCall {
-                    // There's an active call, check if we should end or leave
-                    do {
-                        let shouldEnd = try await shouldEndCall(for: activeCall)
-                        
-                        if shouldEnd {
-                            print("Ending active call \(activeCall.cId) for all participants")
+                        if isCreator || totalParticipants <= 1 {
                             try await activeCall.end()
                         } else {
-                            print("Leaving active call \(activeCall.cId)")
                             try await activeCall.leave()
                         }
                     } catch {
-                        print("Error ending/leaving active call: \(error)")
-                        try await activeCall.leave() // Fallback to leave
+                        // Fallback to leave if getting call info fails
+                        try? await activeCall.leave()
                     }
                     
                     await MainActor.run {
@@ -668,42 +621,12 @@ public class StreamCallPlugin: CAPPlugin, CAPBridgedPlugin {
                         self.overlayView?.isHidden = true
                         self.webView?.isOpaque = true
                     }
-                    
-                    call.resolve([
-                        "success": true
-                    ])
-                } else if let viewModelCall = viewModelCall {
-                    // There's a call in the viewModel (likely outgoing/ringing), check if we should end or leave
-                    do {
-                        let shouldEnd = try await shouldEndCall(for: viewModelCall)
-                        
-                        if shouldEnd {
-                            print("Ending viewModel call \(viewModelCall.cId) for all participants")
-                            try await viewModelCall.end()
-                        } else {
-                            print("Leaving viewModel call \(viewModelCall.cId)")
-                            try await viewModelCall.leave()
-                        }
-                    } catch {
-                        print("Error ending/leaving viewModel call: \(error)")
-                        try await viewModelCall.leave() // Fallback to leave
-                    }
-                    
-                    // Also hang up to reset the calling state
-                    await callViewModel?.hangUp()
-                    
-                    await MainActor.run {
-                        self.touchInterceptView?.setCallActive(false)
-                        self.overlayView?.isHidden = true
-                        self.webView?.isOpaque = true
-                    }
-                    
-                    call.resolve([
-                        "success": true
-                    ])
                 } else {
-                    call.reject("No active call to end")
+                    // If there's no active call, we might still need to hang up the CallKit session
+                    await callViewModel?.hangUp()
                 }
+
+                call.resolve(["success": true])
             }
         } catch {
             call.reject("StreamVideo not initialized")
