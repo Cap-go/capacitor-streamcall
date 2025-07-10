@@ -41,120 +41,54 @@
       </ion-card>
     </div>
 
-    <div class="login-buttons">
-      <ng-container *ngIf="!currentUser">
-        <ion-list>
-        <ion-button (click)="login('user1')" color="success">Login as User 1</ion-button>
-        <ion-button (click)="login('user2')" color="success">Login as User 2</ion-button>
-        <ion-button (click)="login('user3')" color="success">Login as User 3</ion-button>
-        <ion-button (click)="login('user4')" color="success">Login as User 4</ion-button>
-        </ion-list>
-        <ion-item>
-          <ion-label>
-            <h1>Second user group</h1>
-          </ion-label>
-        </ion-item>
-        <ion-list>
-        <ion-button (click)="login('user5')" color="success">Login as User 5</ion-button>
-        <ion-button (click)="login('user6')" color="success">Login as User 6</ion-button>
-        <ion-button (click)="login('user7')" color="success">Login as User 7</ion-button>
-        <ion-button (click)="login('user8')" color="success">Login as User 8</ion-button>
-        </ion-list>
-        <ion-item>
-          <ion-label>
-            <h1>Team users</h1>
-          </ion-label>
-        </ion-item>
-        <ion-list>
-        <ion-button (click)="login('user_red_1', 'red')" color="danger">Login as User_red_1</ion-button>
-        <ion-button (click)="login('user_red_2', 'red')" color="danger">Login as User_red_2</ion-button>
-        <ion-button (click)="login('user_red_3', 'red')" color="danger">Login as User_red_3</ion-button>
-        <ion-button (click)="login('user_blue_1', 'blue')" color="primary">Login as User_blue_1</ion-button>
-        <ion-button (click)="login('user_blue_2', 'blue')" color="primary">Login as User_blue_2</ion-button>
-        <ion-button (click)="login('user_blue_3', 'blue')" color="primary">Login as User_blue_3</ion-button>
-        </ion-list>
-      </ng-container>
-      <ion-button *ngIf="currentUser" (click)="logout()" color="danger">Logout</ion-button>
+    <!-- Individual Calls - only when logged in -->
+    <div class="call-buttons" *ngIf="currentUser">
+      <ion-button (click)="presentCallModal(true)" color="primary">
+        <ion-icon name="mic-outline" slot="start"></ion-icon>
+        Audio Call
+      </ion-button>
+      <ion-button (click)="presentCallModal(false)" color="secondary">
+        <ion-icon name="videocam-outline" slot="start"></ion-icon>
+        Video Call
+      </ion-button>
     </div>
 
+    <!-- Team Calls - always visible -->
     <div class="call-buttons" *ngIf="currentUser">
-      <ion-list>
-      <ion-button *ngIf="currentUser.userId !== 'user1'" (click)="callUser(['user1'])" color="success">
-        <ion-icon name="call"></ion-icon>
-        Call User 1
+      <ion-button (click)="presentTeamCallModal(true)" color="tertiary">
+        <ion-icon name="people-outline" slot="start"></ion-icon>
+        Team Audio Call
       </ion-button>
-      <ion-button *ngIf="currentUser.userId !== 'user2'" (click)="callUser(['user2'])" color="success">
-        <ion-icon name="call"></ion-icon>
-        Call User 2
+      <ion-button (click)="presentTeamCallModal(false)" color="warning">
+        <ion-icon name="people-circle-outline" slot="start"></ion-icon>
+        Team Video Call
       </ion-button>
-      <ion-button *ngIf="currentUser.userId !== 'user3'" (click)="callUser(['user3'])" color="success">
-        <ion-icon name="call"></ion-icon>
-        Call User 3
-      </ion-button>
-      <ion-button *ngIf="currentUser.userId !== 'user4'" (click)="callUser(['user4'])" color="success">
-        <ion-icon name="call"></ion-icon>
-        Call User 4
-      </ion-button>
-    </ion-list>
-      <ion-item>
-        <ion-label>
-          <h1>Second user group</h1>
-        </ion-label>
-      </ion-item>
-      <ion-list>
-      <ion-button *ngIf="currentUser.userId !== 'user5'" (click)="callUser(['user5'])" color="success">
-        <ion-icon name="call"></ion-icon>
-        Call User 5
-      </ion-button>
-      <ion-button *ngIf="currentUser.userId !== 'user6'" (click)="callUser(['user6'])" color="success">
-        <ion-icon name="call"></ion-icon>
-        Call User 6
-      </ion-button>
-      <ion-button *ngIf="currentUser.userId !== 'user7'" (click)="callUser(['user7'])" color="success">
-        <ion-icon name="call"></ion-icon>
-        Call User 7
-      </ion-button>
-      <ion-button *ngIf="currentUser.userId !== 'user8'" (click)="callUser(['user8'])" color="success">
-        <ion-icon name="call"></ion-icon>
-        Call User 8
-      </ion-button>
-    </ion-list>
-      <ion-item>
-        <ion-label>
-          <h1>Team users</h1>
-        </ion-label>
-      </ion-item>
-      <ion-list>
-      <!-- add multi call test button -->
-      <ion-button (click)="callUser(['user1', 'user2'])" color="success">
-        <ion-icon name="call"></ion-icon>
-        Call User 1 and 2
-      </ion-button>
-      <ion-button (click)="callUser(['user1', 'user2', 'user3'])" color="success">
-        <ion-icon name="call"></ion-icon>
-        Call User 1, 2 and 3
-      </ion-button>
-      <ion-button (click)="callUser(['user1', 'user2', 'user3', 'user4'])" color="success">
-        <ion-icon name="call"></ion-icon>
-        Call All Users
-      </ion-button>
-      <!-- call 2,3 -->
-      <ion-button (click)="callUser(['user2', 'user3'])" color="success">
-        <ion-icon name="call"></ion-icon>
-        Call User 2 and 3
-      </ion-button>
-      <ion-button (click)="callUserWithTeam(['user_red_2'], 'red')" color="danger">
-        <ion-icon name="call"></ion-icon>
-        Call Red Team for User 2
-      </ion-button>
-      <ion-button (click)="callUserWithTeam(['user_blue_2'], 'blue')" color="primary">
-        <ion-icon name="call"></ion-icon>
-        Call Blue Team for User 2
-      </ion-button>
-    </ion-list>
     </div>
+
+    <div class="ion-padding" *ngIf="currentUser">
+      <ion-list>
+        <ion-item>
+          <ion-toggle [(ngModel)]="ringUsers" labelPlacement="start">Ring users</ion-toggle>
+        </ion-item>
+        <ion-item>
+          <ion-select [(ngModel)]="callType" label="Call Type" interface="popover">
+            <ion-select-option value="default">Default</ion-select-option>
+            <ion-select-option value="audio_room">Audio Room</ion-select-option>
+            <ion-select-option value="livestream">Livestream</ion-select-option>
+            <ion-select-option value="development">Development</ion-select-option>
+          </ion-select>
+        </ion-item>
+      </ion-list>
+    </div>
+    
     <div class="call-status">
       <h3>Call Status: {{ callStatus }}</h3>
+    </div>
+
+
+    <div class="login-buttons">
+      <ion-button (click)="presentLoginModal()" *ngIf="!currentUser" color="success">Login</ion-button>
+      <ion-button *ngIf="currentUser" (click)="logout()" color="danger">Logout</ion-button>
     </div>
   </div> 
 </ion-content>

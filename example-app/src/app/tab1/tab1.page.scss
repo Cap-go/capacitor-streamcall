@@ -1,4 +1,7 @@
-:host {
+:host(.transparent) {
+  --background: transparent !important;
+  background: transparent !important;
+  
   ion-content {
     --background: transparent;
   }
@@ -6,11 +9,6 @@
   &::part(background) {
     background: transparent;
   }
-}
-
-.transparent {
-  --background: transparent !important;
-  background: transparent !important;
 }
 
 .magicDiv {
