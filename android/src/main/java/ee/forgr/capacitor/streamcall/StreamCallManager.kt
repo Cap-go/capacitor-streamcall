@@ -72,7 +72,7 @@ object StreamCallManager {
         if (credentials != null) {
             Log.d("StreamCallManager", "Found saved credentials for ${credentials.user.id}. Creating client synchronously.")
             try {
-                val apiKey = ApiKeyManager.getEffectiveApiKey()
+                val apiKey = ApiKeyManager.getEffectiveApiKey(app)
                 createStreamVideoClient(credentials.user, credentials.tokenValue, apiKey)
                 Log.d("StreamCallManager", "StreamVideo client created synchronously for user ${credentials.user.id}.")
             } catch (e: Exception) {

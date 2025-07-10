@@ -389,7 +389,7 @@ class StreamCallPlugin : Plugin() {
         val token = call.getString("token")
         val userId = call.getString("userId")
         val name = call.getString("name")
-        val apiKey = call.getString("apiKey") ?: ApiKeyManager.getEffectiveApiKey()
+        val apiKey = call.getString("apiKey") ?: ApiKeyManager.getEffectiveApiKey(context)
 
         if (token == null || userId == null || name == null) {
             call.reject("Missing required parameters: token, userId, name")
@@ -1420,7 +1420,7 @@ class StreamCallPlugin : Plugin() {
         }
 
         try {
-            ApiKeyManager.saveDynamicApiKey(apiKey)
+            ApiKeyManager.saveDynamicApiKey(context, apiKey)
             Log.d("StreamCallPlugin", "Dynamic API key saved successfully")
             call.resolve(JSObject().apply {
                 put("success", true)
@@ -1434,7 +1434,7 @@ class StreamCallPlugin : Plugin() {
     @PluginMethod
     fun getDynamicStreamVideoApikey(call: PluginCall) {
         try {
-            val apiKey = ApiKeyManager.getDynamicApiKey()
+            val apiKey = ApiKeyManager.getDynamicApiKey(context)
             call.resolve(JSObject().apply {
                 if (apiKey != null) {
                     put("apiKey", apiKey)

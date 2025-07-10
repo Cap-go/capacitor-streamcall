@@ -38,7 +38,6 @@ public class DemoApplication extends Application {
         // Initialize Firebase
         com.google.firebase.FirebaseApp.initializeApp(this);
          try {
-            ApiKeyManager.INSTANCE.initialize(this);
             StreamCallManager.INSTANCE.initialize(this);
             Log.i(TAG, "StreamCallManager initialized successfully");
          } catch (Exception e) {
