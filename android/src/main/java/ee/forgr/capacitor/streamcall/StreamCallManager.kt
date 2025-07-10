@@ -36,7 +36,6 @@ import com.getcapacitor.JSObject
 import android.os.Handler
 import android.os.Looper
 import io.getstream.android.push.firebase.FirebasePushDeviceGenerator
-import io.getstream.video.android.model.StreamCallId
 import kotlinx.coroutines.DelicateCoroutinesApi
 
 object StreamCallManager {
@@ -310,11 +309,7 @@ object StreamCallManager {
     private fun startCallTimeoutMonitor(callCid: String, memberIds: List<String>) {
         if (callTimeoutStates.containsKey(callCid)) return
         val handler = Handler(Looper.getMainLooper())
-        val timeoutRunnable = object : Runnable {
-            override fun run() {
-                checkCallTimeout(callCid)
-            }
-        }
+        val timeoutRunnable = Runnable { checkCallTimeout(callCid) }
         handler.postDelayed(timeoutRunnable, 30000) // 30 second timeout
         callTimeoutStates[callCid] = CallTimeoutState(members = memberIds, timer = handler, timeoutRunnable = timeoutRunnable)
         Log.d("StreamCallManager", "Started timeout monitor for call $callCid")
@@ -346,7 +341,7 @@ object StreamCallManager {
 
     private fun checkCallTimeout(callCid: String) {
         val state = callTimeoutStates[callCid] ?: return
-        Log.d("StreamCallManager", "Call $callCid timed out.")
+        Log.d("StreamCallManager", "Call $callCid timed out. $state")
         endCallByCid(callCid)
     }
     

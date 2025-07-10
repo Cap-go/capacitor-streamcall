@@ -4,8 +4,6 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.util.Log
-import io.getstream.video.android.core.notifications.NotificationHandler
-import io.getstream.video.android.model.streamCallId
 
 class AcceptCallReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent?) {

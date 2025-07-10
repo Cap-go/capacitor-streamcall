@@ -9,7 +9,6 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
-import android.content.SharedPreferences
 import android.content.pm.PackageManager
 import android.graphics.Color
 import android.net.Uri
@@ -56,7 +55,6 @@ import kotlinx.coroutines.launch
 import androidx.core.net.toUri
 import org.json.JSONObject
 import androidx.core.graphics.toColorInt
-import androidx.core.content.edit
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 
@@ -1240,6 +1238,7 @@ class StreamCallPlugin : Plugin() {
             if (savedCapacitorActivity != null) {
                 // This logic needs to be revisited. It's not clear if savedActivityPaused is available
                 // or how to correctly check if the activity is paused.
+                Log.d("StreamCallPlugin", "Moving activity to background")
             }
 
             setOverlayContent(call)

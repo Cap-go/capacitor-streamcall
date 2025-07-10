@@ -27,10 +27,10 @@ class CustomNotificationHandler(
     override fun getOngoingCallNotification(
         callId: StreamCallId,
         callDisplayName: String?,
-        isOutgoing: Boolean,
-        participants: Int
+        isOutgoingCall: Boolean,
+        remoteParticipantCount: Int
     ): Notification? {
-        Log.d("CustomNotificationHandler", "getOngoingCallNotification called: callId=$callId, isOutgoing=$isOutgoing, participants=$participants")
+        Log.d("CustomNotificationHandler", "getOngoingCallNotification called: callId=$callId, isOutgoing=$isOutgoingCall, participants=$remoteParticipantCount")
 
         val launchIntent = application.packageManager.getLaunchIntentForPackage(application.packageName)?.apply {
             putExtra("call_cid", callId.cid)
@@ -157,37 +157,6 @@ class CustomNotificationHandler(
             null
         }
     }
-
-    private fun createAcceptCallPendingIntent(
-        callId: StreamCallId,
-        requestCode: Int,
-        acceptCallIntent: Intent
-    ): PendingIntent? {
-        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
-            val launchIntent = application.packageManager.getLaunchIntentForPackage(application.packageName)
-            if (launchIntent != null) {
-                launchIntent.action = NotificationHandler.ACTION_ACCEPT_CALL
-                launchIntent.putExtra(NotificationHandler.INTENT_EXTRA_CALL_CID, callId)
-                launchIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
-                PendingIntent.getActivity(
-                    application,
-                    requestCode,
-                    launchIntent,
-                    PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
-                )
-            } else {
-                Log.e("CustomNotificationHandler", "Could not get launch intent for package to create Accept PI.")
-                null
-            }
-        } else {
-            PendingIntent.getBroadcast(
-                application,
-                requestCode,
-                acceptCallIntent,
-                PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
-            )
-        }
-    }
  
     fun customGetIncomingCallNotification(
         fullScreenPendingIntent: PendingIntent,
@@ -220,87 +189,10 @@ class CustomNotificationHandler(
         }
     }
  
-    private fun buildNotification(
-        fullScreenPendingIntent: PendingIntent,
-        acceptCallPendingIntent: PendingIntent,
-        rejectCallPendingIntent: PendingIntent,
-        callerName: String?,
-        shouldHaveContentIntent: Boolean,
-        channelId: String,
-        includeSound: Boolean
-    ): Notification {
-        Log.d("CustomNotificationHandler", "buildNotification called: callerName=$callerName, channelId=$channelId, includeSound=$includeSound")
-        return getNotification {
-            priority = NotificationCompat.PRIORITY_HIGH
-            setContentTitle(callerName)
-            setContentText("Incoming call")
-            setChannelId(channelId)
-            setOngoing(true)
-            setAutoCancel(false)
-            setCategory(NotificationCompat.CATEGORY_CALL)
- 
-            // Clear all defaults first
-            setDefaults(0)
- 
-            if (includeSound) {
-                setSound(RingtoneManager.getDefaultUri(RingtoneManager.TYPE_RINGTONE))
-                setDefaults(NotificationCompat.DEFAULT_VIBRATE or NotificationCompat.DEFAULT_LIGHTS)
-            } else {
-                setSound(null)
-                setDefaults(NotificationCompat.DEFAULT_VIBRATE or NotificationCompat.DEFAULT_LIGHTS)
-            }
- 
-            // setVibrate(longArrayOf(0, 1000, 500, 1000))
-            setLights(0xFF0000FF.toInt(), 1000, 1000)
-            setFullScreenIntent(fullScreenPendingIntent, true)
-            if (shouldHaveContentIntent) {
-                setContentIntent(fullScreenPendingIntent)
-            } else {
-                val emptyIntent = PendingIntent.getActivity(
-                    application,
-                    0,
-                    Intent(),
-                    PendingIntent.FLAG_IMMUTABLE,
-                )
-                setContentIntent(emptyIntent)
-            }
-            addCallActions(acceptCallPendingIntent, rejectCallPendingIntent, callerName)
-        }.apply {
-            // flags = flags or NotificationCompat.FLAG_ONGOING_EVENT
-        }
-    }
- 
     override fun onMissedCall(callId: StreamCallId, callDisplayName: String) {
         Log.d("CustomNotificationHandler", "onMissedCall called: callId=$callId, callDisplayName=$callDisplayName")
         endCall(callId)
         super.onMissedCall(callId, callDisplayName)
-    }
-
-    private fun customCreateIncomingCallChannel() {
-        Log.d("CustomNotificationHandler", "customCreateIncomingCallChannel called")
-        maybeCreateChannel(
-            channelId = INCOMING_CALLS_CUSTOM,
-            context = application,
-            configure = {
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                    name = application.getString(
-                        R.string.stream_video_incoming_call_notification_channel_title,
-                    )
-                    description = application.getString(R.string.stream_video_incoming_call_notification_channel_description)
-                    importance = NotificationManager.IMPORTANCE_HIGH
-                    this.lockscreenVisibility = Notification.VISIBILITY_PUBLIC
-                    this.setShowBadge(true)
- 
-                    // Set the channel to be silent since we handle sound via RingtonePlayer
-                    setSound(null, null)
-                    enableVibration(true)
-                    enableLights(true)
-                }
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-                    this.setAllowBubbles(true)
-                }
-            },
-        )
     }
 
     private fun createOngoingCallChannel() {
