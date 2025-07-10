@@ -163,7 +163,7 @@ object StreamCallManager {
         streamVideoClient = null
     }
 
-    fun call(callType: String, callId: String, userIds: List<String>, shouldRing: Boolean, team: String?, custom: Map<String, Any>?) {
+    fun call(callType: String, callId: String, userIds: List<String>, shouldRing: Boolean, team: String?, custom: Map<String, Any>?, video: Boolean) {
         val selfUserId = streamVideoClient?.user?.id
         if (selfUserId == null) {
             _callState.value = CallStateUpdate("error", JSObject().put("error", "Not logged in"))
@@ -178,6 +178,7 @@ object StreamCallManager {
                     custom = custom ?: emptyMap(),
                     ring = shouldRing,
                     team = team,
+                    video = video,
                 )
 
                 if (createResult?.isFailure == true) {

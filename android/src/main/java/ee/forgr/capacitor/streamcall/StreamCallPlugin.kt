@@ -82,6 +82,7 @@ class StreamCallPlugin : Plugin() {
     private var pendingCallType: String? = null
     private var pendingCallShouldRing: Boolean? = null
     private var pendingCallTeam: String? = null
+    private var pendingCallVideo: Boolean? = null
     private var pendingCustomObject: JSObject? = null
     private var pendingAcceptCall: Call? = null // Store the actual call object for acceptance
 
@@ -828,6 +829,7 @@ class StreamCallPlugin : Plugin() {
         val callType = pendingCallType
         val shouldRing = pendingCallShouldRing
         val team = pendingCallTeam
+        val video = pendingCallVideo ?: false // Default to false if not set
         val custom = pendingCustomObject?.toMap()
         
         if (call != null && userIds != null && callType != null && shouldRing != null) {
@@ -838,7 +840,7 @@ class StreamCallPlugin : Plugin() {
             
             // Execute the call creation logic via the manager
             val callId = java.util.UUID.randomUUID().toString()
-            StreamCallManager.call(callType, callId, userIds, shouldRing, team, custom)
+            StreamCallManager.call(callType, callId, userIds, shouldRing, team, custom, video)
             // The plugin call will be resolved/rejected based on the StateFlow events from the manager
         } else {
             Log.w("StreamCallPlugin", "executePendingCall: Missing pending call data")
@@ -853,6 +855,7 @@ class StreamCallPlugin : Plugin() {
         pendingCallType = null
         pendingCallShouldRing = null
         pendingCallTeam = null
+        pendingCallVideo = null
         pendingAcceptCall = null
         pendingCustomObject = null
         permissionAttemptCount = 0 // Reset attempt count when clearing
@@ -861,9 +864,9 @@ class StreamCallPlugin : Plugin() {
 
 
     @OptIn(DelicateCoroutinesApi::class, InternalStreamVideoApi::class)
-    private fun createAndStartCall(call: PluginCall, userIds: List<String>, callType: String, shouldRing: Boolean, team: String?, custom: JSObject?) {
+    private fun createAndStartCall(call: PluginCall, userIds: List<String>, callType: String, shouldRing: Boolean, team: String?, custom: JSObject?, video: Boolean) {
         val callId = java.util.UUID.randomUUID().toString()
-        StreamCallManager.call(callType, callId, userIds, shouldRing, team, custom?.toMap())
+        StreamCallManager.call(callType, callId, userIds, shouldRing, team, custom?.toMap(), video)
         // The plugin call will be resolved/rejected based on the StateFlow events from the manager
         // We can optimistically resolve here, or wait for a confirmation event.
         // For now, let's assume the manager will send an event that the observer handles.
@@ -1321,6 +1324,7 @@ class StreamCallPlugin : Plugin() {
         }
 
         val custom = call.getObject("custom")
+        val video = call.getBoolean("video") ?: false
 
         try {
             if (StreamCallManager.streamVideoClient == null) {
@@ -1340,6 +1344,7 @@ class StreamCallPlugin : Plugin() {
                 pendingCallUserIds = userIds
                 pendingCallType = callType
                 pendingCallShouldRing = shouldRing
+                pendingCallVideo = video
                 pendingCallTeam = team
                 custom?.let {
                     pendingCustomObject = it
@@ -1351,7 +1356,7 @@ class StreamCallPlugin : Plugin() {
             }
 
             // Execute call creation immediately if permissions are granted
-            createAndStartCall(call, userIds, callType, shouldRing, team, custom)
+            createAndStartCall(call, userIds, callType, shouldRing, team, custom, video)
         } catch (e: Exception) {
             call.reject("Failed to make call: ${e.message}")
         }
