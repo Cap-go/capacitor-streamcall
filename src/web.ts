@@ -1,6 +1,6 @@
 import { WebPlugin } from '@capacitor/core';
-import type { AllClientEvents, Call, CallResponse, StreamVideoParticipant } from '@stream-io/video-client';
-import { CallingState, StreamVideoClient } from '@stream-io/video-client';
+import type { AllClientEvents, Call, CallResponse, StreamVideoParticipant , StreamVideoClient } from '@stream-io/video-client';
+import { CallingState } from '@stream-io/video-client';
 
 import type {
   CallOptions,
@@ -85,6 +85,7 @@ export class StreamCallWeb extends WebPlugin implements StreamCallPlugin {
         if (s === CallingState.JOINED) {
           this.setupParticipantListener();
           this.setupCallEventListeners();
+          this.setupCallRingListener();
         } else if (s === CallingState.LEFT || s === CallingState.RECONNECTING_FAILED) {
           this.cleanupCall();
         }
@@ -554,33 +555,17 @@ export class StreamCallWeb extends WebPlugin implements StreamCallPlugin {
     this.incomingCall = undefined;
   }
 
-  async login(options: LoginOptions): Promise<SuccessResponse> {
-    this.client = StreamVideoClient.getOrCreateInstance({
-      apiKey: options.apiKey,
-      user: { id: options.userId, name: options.name, image: options.imageURL },
-      token: options.token,
-    });
-
-    this.magicDivId = options.magicDivId;
-    this.setupCallRingListener();
-
-    return { success: true };
+  async login(options: LoginOptions): Promise<void> {
+    console.log('login', options);
+    return;
   }
 
-  async logout(): Promise<SuccessResponse> {
-    if (!this.client) {
-      console.log('No client', this.client);
-      throw new Error('Client not initialized');
-    }
+  async isFreshInstall(): Promise<{ isFreshInstall: boolean }> {
+    return { isFreshInstall: false };
+  }
 
-    // Cleanup subscription
-    this.callStateSubscription?.unsubscribe();
-    this.callStateSubscription = undefined;
-
-    await this.client.disconnectUser();
-    this.client = undefined;
-    this.currentCall = undefined;
-    return { success: true };
+  async logout(): Promise<void> {
+    console.log('logout');
   }
 
   async call(options: CallOptions): Promise<SuccessResponse> {

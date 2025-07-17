@@ -57,8 +57,16 @@ export class Tab1Page {
     private alertController: AlertController
   ) {
     void this.loadCurrentEnvironment();
-    void this.loadStoredUser();
+    void this.initialize();
     this.getCallStatus();
+  }
+
+  private async initialize() {
+    const { isFreshInstall } = await StreamCall.isFreshInstall();
+    if (isFreshInstall) {
+      localStorage.clear();
+    }
+    await this.loadStoredUser();
   }
 
   private async loadCurrentEnvironment() {
@@ -393,10 +401,9 @@ export class Tab1Page {
 
   async logout() {
     try {
-      await StreamCall.logout();
       this.currentUser = null;
       localStorage.removeItem('currentUser');
-      
+      await StreamCall.logout();
       // Clear current user ID in AppComponent
       this.appComponent.setCurrentUserId('');
       

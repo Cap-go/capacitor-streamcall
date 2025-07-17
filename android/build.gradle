@@ -85,6 +85,7 @@ dependencies {
     // Firebase dependencies using BOM
     implementation(platform('com.google.firebase:firebase-bom:33.13.0'))
     implementation('com.google.firebase:firebase-messaging-ktx')
+    implementation 'androidx.media:media:1.7.0'
     
     implementation("androidx.coordinatorlayout:coordinatorlayout:1.3.0")
     implementation 'org.jetbrains.kotlinx:kotlinx-coroutines-play-services:1.9.0'

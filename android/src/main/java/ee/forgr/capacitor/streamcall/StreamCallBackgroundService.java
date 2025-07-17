@@ -27,10 +27,8 @@ public class StreamCallBackgroundService extends Service {
     public void onDestroy() {
         super.onDestroy();
         Log.d(TAG, "Service destroyed");
-        // Restart the service if it's killed by the system
-        Intent restartServiceIntent = new Intent(getApplicationContext(), StreamCallBackgroundService.class);
-        restartServiceIntent.setPackage(getPackageName());
-        startService(restartServiceIntent);
+        // The START_STICKY flag in onStartCommand already handles restarts properly
+        // Removing manual restart to avoid background execution limits
     }
 
     @Nullable

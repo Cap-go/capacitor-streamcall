@@ -21,6 +21,7 @@ import io.getstream.video.android.core.StreamVideo
 import io.getstream.video.android.core.StreamVideoBuilder
 import io.getstream.video.android.core.events.ParticipantLeftEvent
 import io.getstream.video.android.core.internal.InternalStreamVideoApi
+import io.getstream.video.android.core.notifications.handlers.StreamNotificationBuilderInterceptors
 import io.getstream.video.android.core.notifications.NotificationConfig
 import io.getstream.video.android.core.sounds.RingingConfig
 import io.getstream.video.android.core.sounds.toSounds
@@ -35,11 +36,15 @@ import kotlinx.coroutines.launch
 import com.getcapacitor.JSObject
 import android.os.Handler
 import android.os.Looper
-import io.getstream.android.push.firebase.FirebasePushDeviceGenerator
+import android.app.PendingIntent
+import androidx.core.app.NotificationCompat
+import io.getstream.video.android.core.notifications.handlers.CompatibilityStreamNotificationHandler
 import kotlinx.coroutines.DelicateCoroutinesApi
 
 object StreamCallManager {
     private var state: State = State.NOT_INITIALIZED
+    var isFreshInstall = false
+        private set
     private lateinit var application: Application
     var streamVideoClient: StreamVideo? = null
         private set
@@ -60,6 +65,17 @@ object StreamCallManager {
     }
 
     fun initialize(app: Application) {
+        try {
+            val packageInfo = app.packageManager.getPackageInfo(app.packageName, 0)
+            if (packageInfo.firstInstallTime == packageInfo.lastUpdateTime) {
+                isFreshInstall = true
+                Log.d("StreamCallManager", "Fresh install detected, clearing any stored user credentials.")
+                SecureUserRepository.getInstance(app.applicationContext).removeCurrentUser()
+            }
+        } catch (e: Exception) {
+            Log.e("StreamCallManager", "Error checking install time, proceeding without credential clear.", e)
+        }
+
         if (state != State.NOT_INITIALIZED) {
             Log.d("StreamCallManager", "Already initialized.")
             return
@@ -119,25 +135,6 @@ object StreamCallManager {
 
     private fun createStreamVideoClient(user: User, token: String, apiKey: String) {
         val contextToUse = application.applicationContext
-        val notificationHandler = CustomNotificationHandler(
-            application = contextToUse as Application,
-            endCall = { callId ->
-                val activeCall = streamVideoClient?.call(callId.type, callId.id)
-                managerScope.launch {
-                    try {
-                        activeCall?.let { endCall(it) }
-                    } catch (e: Exception) {
-                        Log.e("StreamCallManager", "Error ending after missed call notif action", e)
-                    }
-                }
-            },
-            incomingCall = {}
-        )
-        val notificationConfig = NotificationConfig(
-            pushDeviceGenerators = listOf(FirebasePushDeviceGenerator(providerName = "firebase", context = contextToUse)),
-            requestPermissionOnAppLaunch = { true },
-            notificationHandler = notificationHandler,
-        )
         val soundsConfig = object : RingingConfig {
             override val incomingCallSoundUri: Uri? = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_RINGTONE)
             override val outgoingCallSoundUri: Uri? = null
@@ -148,8 +145,27 @@ object StreamCallManager {
             geo = GEO.GlobalEdgeNetwork,
             user = user,
             token = token,
-            notificationConfig = notificationConfig,
             sounds = soundsConfig.toSounds(),
+            notificationConfig = NotificationConfig(
+                requestPermissionOnAppLaunch = { true }, // Request notification permission on app launch
+                notificationHandler = CompatibilityStreamNotificationHandler(
+                    application = contextToUse as Application,
+                    intentResolver = CustomStreamIntentResolver(contextToUse as Application),
+                    initialNotificationBuilderInterceptor = object : StreamNotificationBuilderInterceptors() {
+                        override fun onBuildIncomingCallNotification(
+                            builder: NotificationCompat.Builder,
+                            fullScreenPendingIntent: PendingIntent,
+                            acceptCallPendingIntent: PendingIntent,
+                            rejectCallPendingIntent: PendingIntent,
+                            callerName: String?,
+                            shouldHaveContentIntent: Boolean
+                        ): NotificationCompat.Builder {
+                            return builder.setContentIntent(fullScreenPendingIntent)
+                                .setFullScreenIntent(fullScreenPendingIntent, true)
+                        }
+                    }
+                )
+            ),
         ).build()
         registerEventHandlers()
         state = State.INITIALIZED
@@ -202,9 +218,9 @@ object StreamCallManager {
                 Log.d("StreamCallManager", "Logging out user.")
                 cleanupStreamVideoClient()
                 state = State.NOT_INITIALIZED
-                _callState.value = CallStateUpdate("logoutSuccess", JSObject().put("success", true))
+                _callState.value = CallStateUpdate("logoutSuccess", JSObject())
             } else {
-                _callState.value = CallStateUpdate("logoutSuccess", JSObject().put("success", true))
+                _callState.value = CallStateUpdate("logoutSuccess", JSObject())
             }
         }
     }

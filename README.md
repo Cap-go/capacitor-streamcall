@@ -237,6 +237,7 @@ export class CallService {
 <docgen-index>
 
 * [`login(...)`](#login)
+* [`isFreshInstall()`](#isfreshinstall)
 * [`logout()`](#logout)
 * [`call(...)`](#call)
 * [`endCall()`](#endcall)
@@ -266,7 +267,7 @@ export class CallService {
 ### login(...)
 
 ```typescript
-login(options: LoginOptions) => Promise<SuccessResponse>
+login(options: LoginOptions) => Promise<void>
 ```
 
 Login to Stream Video service
@@ -275,7 +276,18 @@ Login to Stream Video service
 | ------------- | ----------------------------------------------------- | --------------------- |
 | **`options`** | <code><a href="#loginoptions">LoginOptions</a></code> | - Login configuration |
 
-**Returns:** <code>Promise&lt;<a href="#successresponse">SuccessResponse</a>&gt;</code>
+--------------------
+
+
+### isFreshInstall()
+
+```typescript
+isFreshInstall() => Promise<{ isFreshInstall: boolean; }>
+```
+
+Checks if the application was freshly installed.
+
+**Returns:** <code>Promise&lt;{ isFreshInstall: boolean; }&gt;</code>
 
 --------------------
 
@@ -283,12 +295,10 @@ Login to Stream Video service
 ### logout()
 
 ```typescript
-logout() => Promise<SuccessResponse>
+logout() => Promise<void>
 ```
 
 Logout from Stream Video service
-
-**Returns:** <code>Promise&lt;<a href="#successresponse">SuccessResponse</a>&gt;</code>
 
 --------------------
 
@@ -541,13 +551,6 @@ Get the currently set dynamic Stream Video API key
 ### Interfaces
 
 
-#### SuccessResponse
-
-| Prop          | Type                 | Description                          |
-| ------------- | -------------------- | ------------------------------------ |
-| **`success`** | <code>boolean</code> | Whether the operation was successful |
-
-
 #### LoginOptions
 
 | Prop                          | Type                                                                        | Description                                             |
@@ -567,6 +570,13 @@ Get the currently set dynamic Stream Video API key
 | ---------------------- | ------------------- |
 | **`pushProviderName`** | <code>string</code> |
 | **`voipProviderName`** | <code>string</code> |
+
+
+#### SuccessResponse
+
+| Prop          | Type                 | Description                          |
+| ------------- | -------------------- | ------------------------------------ |
+| **`success`** | <code>boolean</code> | Whether the operation was successful |
 
 
 #### CallOptions

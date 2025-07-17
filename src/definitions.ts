@@ -177,7 +177,7 @@ export interface StreamCallPlugin {
   /**
    * Login to Stream Video service
    * @param {LoginOptions} options - Login configuration
-   * @returns {Promise<SuccessResponse>} Success status
+   * @returns {Promise<void>} Success status
    * @example
    * await StreamCall.login({
    *   token: 'your-token',
@@ -186,15 +186,21 @@ export interface StreamCallPlugin {
    *   apiKey: 'your-api-key'
    * });
    */
-  login(options: LoginOptions): Promise<SuccessResponse>;
+  login(options: LoginOptions): Promise<void>;
+
+  /**
+   * Checks if the application was freshly installed.
+   * @returns A promise that resolves with an object containing the isFreshInstall boolean.
+   */
+  isFreshInstall(): Promise<{ isFreshInstall: boolean }>;
 
   /**
    * Logout from Stream Video service
-   * @returns {Promise<SuccessResponse>} Success status
+   * @returns {Promise<void>} Success status
    * @example
    * await StreamCall.logout();
    */
-  logout(): Promise<SuccessResponse>;
+  logout(): Promise<void>;
 
   /**
    * Initiate a call to another user

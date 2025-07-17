@@ -149,20 +149,20 @@ export class AppComponent {
     StreamCall.removeAllListeners();
     
     // Add transparent background style
-    const styleElement = document.createElement('style');
-    styleElement.id = 'magic_transparent_background';
-    styleElement.textContent = `
-      :root {
-        --ion-background-color: transparent !important;
-      }
-      ion-content {
-        --background: transparent !important;
-      }
-      .ion-page {
-        background: transparent !important;
-      }
-    `;
-    document.head.appendChild(styleElement);
+    // const styleElement = document.createElement('style');
+    // styleElement.id = 'magic_transparent_background';
+    // styleElement.textContent = `
+    //   :root {
+    //     --ion-background-color: transparent !important;
+    //   }
+    //   ion-content {
+    //     --background: transparent !important;
+    //   }
+    //   .ion-page {
+    //     background: transparent !important;
+    //   }
+    // `;
+    // document.head.appendChild(styleElement);
 
     // register event listeners
     console.log('Registering call event listener');

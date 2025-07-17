@@ -409,9 +409,7 @@ public class StreamCallPlugin: CAPPlugin, CAPBridgedPlugin {
             self.webView?.isOpaque = true
         }
 
-        call.resolve([
-            "success": true
-        ])
+        call.resolve()
     }
 
     @objc func isCameraEnabled(_ call: CAPPluginCall) {

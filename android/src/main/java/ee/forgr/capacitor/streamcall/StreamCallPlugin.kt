@@ -141,6 +141,10 @@ class StreamCallPlugin : Plugin() {
         super.load()
         observeCallState()
         checkPermissions()
+        
+        // Handle launch intent (when app is opened from notification)
+        handleLaunchIntent()
+        
         // Register broadcast receiver for ACCEPT_CALL action with high priority
         val filter = IntentFilter("io.getstream.video.android.action.ACCEPT_CALL")
         filter.priority = 999 // Set high priority to ensure it captures the intent
@@ -153,109 +157,125 @@ class StreamCallPlugin : Plugin() {
         Log.d("StreamCallPlugin", "Started StreamCallBackgroundService to keep app alive")
     }
 
-    @OptIn(DelicateCoroutinesApi::class)
-    override fun handleOnNewIntent(intent: Intent) {
-        Log.d("StreamCallPlugin", "handleOnNewIntent called: action=${intent.action}, data=${intent.data}, extras=${intent.extras}")
+    private fun handleLaunchIntent() {
+        try {
+            val intent = activity.intent
+            val callCid = intent?.getStringExtra("callCid")
+            val action = intent?.getStringExtra("action")
+            val callDisplayName = intent?.getStringExtra("callDisplayName")
+            val openWebview = intent?.getBooleanExtra("openWebview", false) ?: false
+            val fromNotification = intent?.getBooleanExtra("fromNotification", false) ?: false
+            val userTapped = intent?.getBooleanExtra("userTapped", false) ?: false
+
+            Log.d("StreamCallPlugin", "handleLaunchIntent: callCid=$callCid, action=$action, openWebview=$openWebview, fromNotification=$fromNotification, userTapped=$userTapped")
+
+            // Only process if user explicitly interacted or it's an incoming call
+            val shouldProcess = when (action) {
+                "outgoing_call_tap" -> userTapped
+                "outgoing_call" -> userTapped || fromNotification
+                else -> openWebview || fromNotification
+            }
+
+            if (callCid != null && shouldProcess) {
+                Log.d("StreamCallPlugin", "App launched from notification - preparing webview data")
+                
+                val data = JSObject().apply {
+                    put("callCid", callCid)
+                    callDisplayName?.let { name -> put("callDisplayName", name) }
+                    put("action", action ?: "unknown")
+                    put("openWebview", true)
+                    put("fromNotification", fromNotification)
+                    put("userTapped", userTapped)
+                    put("launchedFromNotification", true)
+                }
+
+                // Handle different notification actions appropriately
+                val eventType = when (action) {
+                    "accept", "accept_call" -> "incomingCall"
+                    else -> "callNotification"
+                }
+
+                // Delay notification to ensure webview is ready
+                mainHandler.postDelayed({
+                    Log.d("StreamCallPlugin", "Notifying webview of $eventType from launch intent")
+                    notifyListeners(eventType, data, true)
+                }, 1000) // 1 second delay to ensure everything is loaded
+            } else if (callCid != null) {
+                Log.d("StreamCallPlugin", "Ignoring automatic launch intent for outgoing call $callCid (user did not tap)")
+            }
+        } catch (e: Exception) {
+            Log.e("StreamCallPlugin", "Error handling launch intent", e)
+        }
+    }
+
+    override fun handleOnNewIntent(intent: Intent?) {
         super.handleOnNewIntent(intent)
+        intent?.let {
+            val callCid = it.getStringExtra("callCid")
+            val action = it.getStringExtra("action")
+            val callDisplayName = it.getStringExtra("callDisplayName")
+            val openWebview = it.getBooleanExtra("openWebview", false)
+            val fromNotification = it.getBooleanExtra("fromNotification", false)
+            val userTapped = it.getBooleanExtra("userTapped", false)
 
-        val action = intent.action
-        val data = intent.data
-        val extras = intent.extras
-        Log.d("StreamCallPlugin", "handleOnNewIntent: Parsed action: $action")
+            Log.d("StreamCallPlugin", "handleOnNewIntent: callCid=$callCid, action=$action, openWebview=$openWebview, fromNotification=$fromNotification, userTapped=$userTapped")
 
-        if (action === "io.getstream.video.android.action.INCOMING_CALL") {
-            Log.d("StreamCallPlugin", "handleOnNewIntent: Matched INCOMING_CALL action")
-            // We need to make sure the activity is visible on locked screen in such case
-            changeActivityAsVisibleOnLockScreen(this@StreamCallPlugin.activity, true)
-            activity?.runOnUiThread {
-                val cid = intent.streamCallId(NotificationHandler.INTENT_EXTRA_CALL_CID)
-                Log.d("StreamCallPlugin", "handleOnNewIntent: INCOMING_CALL - Extracted cid: $cid")
-                if (cid != null) {
-                    Log.d("StreamCallPlugin", "handleOnNewIntent: INCOMING_CALL - cid is not null, processing.")
-                    val call = StreamCallManager.streamVideoClient?.call(id = cid.id, type = cid.type)
-                    Log.d("StreamCallPlugin", "handleOnNewIntent: INCOMING_CALL - Got call object: ${call?.id}")
+            if (callCid != null) {
+                val data = JSObject().apply {
+                    put("callCid", callCid)
+                    callDisplayName?.let { name -> put("callDisplayName", name) }
+                    put("action", action ?: "unknown")
+                    put("openWebview", openWebview)
+                    put("fromNotification", fromNotification)
+                    put("userTapped", userTapped)
+                }
 
-                    // Try to get caller information from the call
-                    kotlinx.coroutines.GlobalScope.launch {
-                        try {
-                            val callInfo = call?.get()
-                            val callerInfo = callInfo?.getOrNull()?.call?.createdBy
-                            val custom = callInfo?.getOrNull()?.call?.custom
-                            
-                            val payload = JSObject().apply {
-                                put("cid", cid.cid)
-                                put("type", "incoming")
-                                if (callerInfo != null) {
-                                    val caller = JSObject().apply {
-                                        put("userId", callerInfo.id)
-                                        put("name", callerInfo.name ?: "")
-                                        put("imageURL", callerInfo.image ?: "")
-                                        put("role", callerInfo.role)
-                                    }
-                                    put("caller", caller)
-                                }
-                                if (custom != null) {
-                                    put("custom", JSONObject(custom))
-                                }
-                            }
-                            
-                            // Notify WebView/JS about incoming call so it can render its own UI
-                            notifyListeners("incomingCall", payload, true)
-                            
-                            // Delay bringing app to foreground to allow the event to be processed first
-                            kotlinx.coroutines.delay(500) // 500ms delay
-                            bringAppToForeground()
-                        } catch (e: Exception) {
-                            Log.e("StreamCallPlugin", "Error getting call info for incoming call", e)
-                            // Fallback to basic payload without caller info
-                            val payload = JSObject().apply {
-                                put("cid", cid.cid)
-                                put("type", "incoming")
-                            }
-                            notifyListeners("incomingCall", payload, true)
-                            
-                            // Delay bringing app to foreground to allow the event to be processed first
-                            kotlinx.coroutines.delay(500) // 500ms delay
-                            bringAppToForeground()
+                when (action) {
+                    "accept", "accept_call" -> {
+                        Log.d("StreamCallPlugin", "Handling accept call action for $callCid")
+                        notifyListeners("incomingCall", data, true)
+                    }
+                    "incoming_call", "incoming_call_fullscreen" -> {
+                        Log.d("StreamCallPlugin", "Handling incoming call notification for $callCid")
+                        notifyListeners("callNotification", data, true)
+                    }
+                    "ongoing_call" -> {
+                        Log.d("StreamCallPlugin", "Handling ongoing call notification (tap to return) for $callCid")
+                        notifyListeners("callNotification", data, true)
+                    }
+                    "outgoing_call_tap" -> {
+                        // Only open webview if user explicitly tapped the notification
+                        if (userTapped) {
+                            Log.d("StreamCallPlugin", "Handling outgoing call notification tap for $callCid")
+                            notifyListeners("callNotification", data, true)
+                        } else {
+                            Log.d("StreamCallPlugin", "Ignoring automatic outgoing call event for $callCid (user did not tap)")
                         }
                     }
-                } else {
-                    Log.w("StreamCallPlugin", "handleOnNewIntent: INCOMING_CALL - cid is null. Cannot process.")
+                    "outgoing_call" -> {
+                        // Legacy outgoing call - only process if explicitly from user tap
+                        if (userTapped || fromNotification) {
+                            Log.d("StreamCallPlugin", "Handling outgoing call notification for $callCid")
+                            notifyListeners("callNotification", data, true)
+                        } else {
+                            Log.d("StreamCallPlugin", "Ignoring automatic outgoing call event for $callCid")
+                        }
+                    }
+                    else -> {
+                        Log.d("StreamCallPlugin", "Handling general call event for $callCid")
+                        notifyListeners("callEvent", data, true)
+                    }
                 }
-            }
-        } else if (action === "io.getstream.video.android.action.ACCEPT_CALL") {
-            Log.d("StreamCallPlugin", "handleOnNewIntent: Matched ACCEPT_CALL action")
-            val callCidString = intent.getStringExtra("call_cid")
-            if (callCidString == null) {
-                Log.e("StreamCallPlugin", "handleOnNewIntent: ACCEPT_CALL - call_cid string extra is null.")
-                return
-            }
 
-            val callIdParts = callCidString.split(":")
-            if (callIdParts.size < 2) {
-                Log.e("StreamCallPlugin", "handleOnNewIntent: ACCEPT_CALL - Invalid call CID format: $callCidString")
-                return
-            }
-
-            val callType = callIdParts[0]
-            val callId = callIdParts[1]
-            
-            Log.d("StreamCallPlugin", "handleOnNewIntent: ACCEPT_CALL - Reconstructed cid: $callType:$callId")
-
-            val call = StreamCallManager.streamVideoClient?.call(id = callId, type = callType)
-            if (call != null) {
-                kotlinx.coroutines.GlobalScope.launch {
-                    internalAcceptCall(call, requestPermissionsAfter = !checkPermissions())
-                }
-                bringAppToForeground()
-            } else {
-                Log.e("StreamCallPlugin", "handleOnNewIntent: ACCEPT_CALL - Call object is null for cid: $callCidString")
+                // Clear the extras to prevent re-handling
+                activity.intent.removeExtra("callCid")
+                activity.intent.removeExtra("action")
+                activity.intent.removeExtra("callDisplayName")
+                activity.intent.removeExtra("openWebview")
+                activity.intent.removeExtra("fromNotification")
+                activity.intent.removeExtra("userTapped")
             }
         }
-        // Log the intent information
-        Log.d("StreamCallPlugin", "New Intent - Action: $action")
-        Log.d("StreamCallPlugin", "New Intent - Data: $data")
-        Log.d("StreamCallPlugin", "New Intent - Extras: $extras")
     }
 
     @OptIn(DelicateCoroutinesApi::class)
@@ -420,6 +440,13 @@ class StreamCallPlugin : Plugin() {
         } catch (e: Exception) {
             call.reject("Failed to login", e)
         }
+    }
+
+    @PluginMethod
+    fun isFreshInstall(call: PluginCall) {
+        val result = JSObject()
+        result.put("isFreshInstall", StreamCallManager.isFreshInstall)
+        call.resolve(result)
     }
 
     @PluginMethod
@@ -639,7 +666,16 @@ class StreamCallPlugin : Plugin() {
         Log.d("StreamCallPlugin", "checkPermissions: RECORD_AUDIO permission status: $audioPermission (Granted=${PackageManager.PERMISSION_GRANTED})")
         val cameraPermission = ContextCompat.checkSelfPermission(context, Manifest.permission.CAMERA)
         Log.d("StreamCallPlugin", "checkPermissions: CAMERA permission status: $cameraPermission (Granted=${PackageManager.PERMISSION_GRANTED})")
-        val allGranted = audioPermission == PackageManager.PERMISSION_GRANTED && cameraPermission == PackageManager.PERMISSION_GRANTED
+
+        val notificationPermissionGranted = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            val notificationPermission = ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS)
+            Log.d("StreamCallPlugin", "checkPermissions: POST_NOTIFICATIONS permission status: $notificationPermission (Granted=${PackageManager.PERMISSION_GRANTED})")
+            notificationPermission == PackageManager.PERMISSION_GRANTED
+        } else {
+            true // Not needed for older versions
+        }
+
+        val allGranted = audioPermission == PackageManager.PERMISSION_GRANTED && cameraPermission == PackageManager.PERMISSION_GRANTED && notificationPermissionGranted
         Log.d("StreamCallPlugin", "checkPermissions: All permissions granted: $allGranted")
         return allGranted
     }
@@ -876,7 +912,12 @@ class StreamCallPlugin : Plugin() {
     // Function to request required permissions
     private fun requestPermissions() {
         permissionAttemptCount++
-        Log.d("StreamCallPlugin", "requestPermissions: Attempt #$permissionAttemptCount - Requesting RECORD_AUDIO and CAMERA permissions.")
+        
+        val permissionsToRequest = mutableListOf(Manifest.permission.RECORD_AUDIO, Manifest.permission.CAMERA)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            permissionsToRequest.add(Manifest.permission.POST_NOTIFICATIONS)
+        }
+        Log.d("StreamCallPlugin", "requestPermissions: Attempt #$permissionAttemptCount - Requesting ${permissionsToRequest.joinToString()}")
         
         // Record timing for instant denial detection
         permissionRequestStartTime = System.currentTimeMillis()
@@ -884,7 +925,7 @@ class StreamCallPlugin : Plugin() {
         
         ActivityCompat.requestPermissions(
             activity,
-            arrayOf(Manifest.permission.RECORD_AUDIO, Manifest.permission.CAMERA),
+            permissionsToRequest.toTypedArray(),
             9001 // Use high request code to avoid Capacitor conflicts
         )
         
