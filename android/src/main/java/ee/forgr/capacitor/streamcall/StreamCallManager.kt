@@ -40,6 +40,7 @@ import android.app.PendingIntent
 import androidx.core.app.NotificationCompat
 import io.getstream.video.android.core.notifications.handlers.CompatibilityStreamNotificationHandler
 import kotlinx.coroutines.DelicateCoroutinesApi
+import java.io.File
 
 object StreamCallManager {
     private var state: State = State.NOT_INITIALIZED
@@ -65,15 +66,21 @@ object StreamCallManager {
     }
 
     fun initialize(app: Application) {
-        try {
-            val packageInfo = app.packageManager.getPackageInfo(app.packageName, 0)
-            if (packageInfo.firstInstallTime == packageInfo.lastUpdateTime) {
-                isFreshInstall = true
-                Log.d("StreamCallManager", "Fresh install detected, clearing any stored user credentials.")
-                SecureUserRepository.getInstance(app.applicationContext).removeCurrentUser()
+        val noBackupDir = app.noBackupFilesDir
+        val flagFile = File(noBackupDir, ".installed_flag")
+
+        if (!flagFile.exists()) {
+            isFreshInstall = true
+            Log.d("StreamCallManager", "Fresh install detected, clearing any stored user credentials.")
+            SecureUserRepository.getInstance(app.applicationContext).removeCurrentUser()
+            try {
+                flagFile.createNewFile()
+                Log.d("StreamCallManager", "Install flag created in no_backup directory.")
+            } catch (e: Exception) {
+                Log.e("StreamCallManager", "Error creating install flag file.", e)
             }
-        } catch (e: Exception) {
-            Log.e("StreamCallManager", "Error checking install time, proceeding without credential clear.", e)
+        } else {
+            isFreshInstall = false
         }
 
         if (state != State.NOT_INITIALIZED) {
