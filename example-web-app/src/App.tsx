@@ -20,7 +20,7 @@ import { CustomRingingCall } from './CustomRingingCall';
 
 export default function App() {
   const apiKey = 'n8wv8vjmucdw';
-  const API_URL = 'https://magic-login-srvv2-48.localcan.dev';
+  const API_URL = 'https://streamcall-78.localcan.dev';
   const [isCallActive, setIsCallActive] = useState(false);
   const [callId, setCallId] = useState('');
   const [client, setClient] = useState<StreamVideoClient | null>(null);
