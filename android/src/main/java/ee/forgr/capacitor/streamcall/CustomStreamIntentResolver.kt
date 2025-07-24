@@ -18,9 +18,8 @@ class CustomStreamIntentResolver(private val context: Application) : StreamInten
     override fun searchIncomingCallPendingIntent(callId: StreamCallId, notificationId: Int): PendingIntent? {
         val launchIntent = context.packageManager.getLaunchIntentForPackage(context.packageName)?.apply {
             flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP
-            putExtra("callCid", callId.cid)
-            putExtra("action", "accept")
-            action = "io.getstream.video.android.action.ACCEPT_CALL"
+            putExtra(NotificationHandler.INTENT_EXTRA_CALL_CID, callId)
+            action = "io.getstream.video.android.action.INCOMING_CALL"
         }
 
         return PendingIntent.getActivity(
