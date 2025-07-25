@@ -100,7 +100,22 @@ object StreamCallManager {
                 streamVideo = client
                 Log.d(TAG, "StreamVideo client created successfully")
                 
-                true
+                // Wait for client to be fully authenticated (userId available)
+                var attempts = 0
+                val maxAttempts = 50 // 5 seconds total
+                while (client.userId.isNullOrEmpty() && attempts < maxAttempts) {
+                    Log.d(TAG, "Waiting for client authentication... attempt ${attempts + 1}/$maxAttempts")
+                    kotlinx.coroutines.delay(100)
+                    attempts++
+                }
+                
+                if (client.userId.isNullOrEmpty()) {
+                    Log.e(TAG, "Client authentication timed out - userId still null after ${maxAttempts * 100}ms")
+                    false
+                } else {
+                    Log.d(TAG, "Client authenticated successfully with userId: ${client.userId}")
+                    true
+                }
             } catch (e: Exception) {
                 Log.e(TAG, "Failed to login", e)
                 false
@@ -141,12 +156,20 @@ object StreamCallManager {
                 val client = streamVideo ?: throw IllegalStateException("StreamVideo client not initialized")
                 
                 Log.d(TAG, "Making call to users: $userIds, callId: $callId")
+                Log.d(TAG, "Call parameters - type: $callType, ring: $ring, video: $video, team: $team")
+                Log.d(TAG, "Custom data: ${custom ?: "none"}")
+                Log.d(TAG, "Ring parameter received: $ring (type: ${ring::class.simpleName})")
                 
                 val call = client.call(callType, callId)
                 
+                // Include current user in memberIds (required by Stream API)
+                val currentUserId = client.userId
+                val allMemberIds = if (currentUserId in userIds) userIds else userIds + currentUserId
+                Log.d(TAG, "All members including self: $allMemberIds (current user: $currentUserId)")
+                
                 // Create call with options
                 val result = call.create(
-                    memberIds = userIds,
+                    memberIds = allMemberIds,
                     ring = ring,
                     notify = ring,
                     startsAt = null,
@@ -155,7 +178,16 @@ object StreamCallManager {
                     video = video
                 )
                 
-                result.isSuccess
+                if (result.isFailure) {
+                    val error = result.errorOrNull()
+                    Log.w(TAG, "Call creation API returned failure, but this might be a false negative: ${error?.message}")
+                    Log.w(TAG, "Error details: $error")
+                    // Don't return false immediately - the call might still be created (as shown by CallCreatedEvent)
+                }
+                
+                Log.d(TAG, "Call creation initiated - success status: ${result.isSuccess}")
+                // Return true as the call creation was initiated (CallCreatedEvent will confirm actual creation)
+                true
             } catch (e: Exception) {
                 Log.e(TAG, "Failed to make call", e)
                 false

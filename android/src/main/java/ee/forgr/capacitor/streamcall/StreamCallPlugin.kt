@@ -129,11 +129,6 @@ class StreamCallPlugin : Plugin() {
         INITIALIZED
     }
 
-    fun incomingOnlyRingingConfig(): RingingConfig = object : RingingConfig {
-        override val incomingCallSoundUri: Uri? = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_RINGTONE)
-        override val outgoingCallSoundUri: Uri? = null
-    }
-
     companion object {
         /**
          * Pre-load initialization method for compatibility
@@ -244,7 +239,7 @@ class StreamCallPlugin : Plugin() {
                 Log.d("StreamCallPlugin", "handleOnNewIntent: INCOMING_CALL - Extracted cid: $cid")
                 if (cid != null) {
                     Log.d("StreamCallPlugin", "handleOnNewIntent: INCOMING_CALL - cid is not null, processing.")
-                    val call = streamVideoClient?.call(id = cid.id, type = cid.type)
+                    val call = StreamCallManager.getStreamVideo()?.call(id = cid.id, type = cid.type)
                     Log.d("StreamCallPlugin", "handleOnNewIntent: INCOMING_CALL - Got call object: ${call?.id}")
 
                     // Try to get caller information from the call
@@ -301,7 +296,7 @@ class StreamCallPlugin : Plugin() {
             Log.d("StreamCallPlugin", "handleOnNewIntent: ACCEPT_CALL - Extracted cid: $cid")
             if (cid != null) {
                 Log.d("StreamCallPlugin", "handleOnNewIntent: ACCEPT_CALL - Accepting call with cid: $cid")
-                val call = streamVideoClient?.call(id = cid.id, type = cid.type)
+                val call = StreamCallManager.getStreamVideo()?.call(id = cid.id, type = cid.type)
                 if (call != null) {
                     // Log the full stack trace to see exactly where this is called from
                     val stackTrace = Thread.currentThread().stackTrace
@@ -409,7 +404,7 @@ class StreamCallPlugin : Plugin() {
     private fun setOverlayContent(call: Call? = null) {
         overlayView?.setContent {
             VideoTheme {
-                val activeCall = call ?: streamVideoClient?.state?.activeCall?.collectAsState()?.value
+                val activeCall = call ?: StreamCallManager.getStreamVideo()?.state?.activeCall?.collectAsState()?.value
                 if (activeCall != null) {
 
                     val currentLocal by activeCall.state.me.collectAsStateWithLifecycle()
@@ -476,18 +471,30 @@ class StreamCallPlugin : Plugin() {
             // Use StreamCallManager for login
             kotlinx.coroutines.GlobalScope.launch {
                 try {
+                    Log.d("StreamCallPlugin", "Starting login with userId: $userId")
                     val success = StreamCallManager.login(apiKey, token, userId, name, imageURL)
+                    Log.d("StreamCallPlugin", "StreamCallManager.login() returned: $success")
+                    
                     if (success) {
                         streamVideoClient = StreamCallManager.getStreamVideo()
-                        registerEventHandlers()
-                        state = State.INITIALIZED
+                        val clientUserId = streamVideoClient?.userId
+                        Log.d("StreamCallPlugin", "After login - Client exists: ${streamVideoClient != null}")
+                        Log.d("StreamCallPlugin", "After login - Client userId: $clientUserId")
+                        
+                        if (streamVideoClient != null) {
+                            registerEventHandlers()
+                            state = State.INITIALIZED
+                            Log.d("StreamCallPlugin", "Login completed successfully - state set to INITIALIZED")
+                        }
                         call.resolve(JSObject().apply {
                             put("success", true)
                         })
                     } else {
+                        Log.e("StreamCallPlugin", "StreamCallManager.login() failed")
                         call.reject("Failed to login with StreamCallManager")
                     }
                 } catch (e: Exception) {
+                    Log.e("StreamCallPlugin", "Login exception: ${e.message}", e)
                     call.reject("Login failed", e)
                 }
             }
@@ -633,7 +640,7 @@ class StreamCallPlugin : Plugin() {
                                 if (callIdParts.size >= 2) {
                                     val callType = callIdParts[0]
                                     val callId = callIdParts[1]
-                                    val call = streamVideoClient?.call(type = callType, id = callId)
+                                    val call = StreamCallManager.getStreamVideo()?.call(type = callType, id = callId)
                                     val callInfo = call?.get()
                                     val callerInfo = callInfo?.getOrNull()?.call?.createdBy
                                     
@@ -663,7 +670,7 @@ class StreamCallPlugin : Plugin() {
                         val callCid = event.callCid
                         Log.d("StreamCallPlugin", "CallCreatedEvent: Received for $callCid")
                         Log.d("StreamCallPlugin", "CallCreatedEvent: All members from event: ${event.members.joinToString { it.user.id + " (role: " + it.user.role + ")" }}")
-                        Log.d("StreamCallPlugin", "CallCreatedEvent: Self user ID from SDK: ${this@StreamCallPlugin.streamVideoClient?.userId}")
+                        Log.d("StreamCallPlugin", "CallCreatedEvent: Self user ID from SDK: ${StreamCallManager.getStreamVideo()?.userId}")
 
                         // Only send "created" event for outgoing calls (calls created by current user)
                         // For incoming calls, we'll only send "ringing" event in CallRingEvent handler
@@ -673,10 +680,10 @@ class StreamCallPlugin : Plugin() {
                                 if (callIdParts.size >= 2) {
                                     val callType = callIdParts[0]
                                     val callId = callIdParts[1]
-                                    val call = streamVideoClient?.call(type = callType, id = callId)
+                                    val call = StreamCallManager.getStreamVideo()?.call(type = callType, id = callId)
                                     val callInfo = call?.get()
                                     val createdBy = callInfo?.getOrNull()?.call?.createdBy
-                                    val currentUserId = streamVideoClient?.userId
+                                    val currentUserId = StreamCallManager.getStreamVideo()?.userId
                                     
                                     Log.d("StreamCallPlugin", "CallCreatedEvent: Call created by: ${createdBy?.id}, Current user: $currentUserId")
                                     
@@ -684,13 +691,13 @@ class StreamCallPlugin : Plugin() {
                                     if (createdBy?.id == currentUserId) {
                                         Log.d("StreamCallPlugin", "CallCreatedEvent: This is an outgoing call, sending created event")
                                         
-                                        val callParticipants = event.members.filter {
-                                            val selfId = this@StreamCallPlugin.streamVideoClient?.userId
-                                            val memberId = it.user.id
-                                            val isSelf = memberId == selfId
-                                            Log.d("StreamCallPlugin", "CallCreatedEvent: Filtering member $memberId. Self ID: $selfId. Is self: $isSelf")
-                                            !isSelf
-                                        }.map { it.user.id }
+                                                                val callParticipants = event.members.filter {
+                            val selfId = StreamCallManager.getStreamVideo()?.userId
+                            val memberId = it.user.id
+                            val isSelf = memberId == selfId
+                            Log.d("StreamCallPlugin", "CallCreatedEvent: Filtering member $memberId. Self ID: $selfId. Is self: $isSelf")
+                            !isSelf
+                        }.map { it.user.id }
 
                                         Log.d("StreamCallPlugin", "Call created for $callCid with ${callParticipants.size} remote participants: ${callParticipants.joinToString()}.")
 
@@ -799,7 +806,7 @@ class StreamCallPlugin : Plugin() {
                     }
 
                     is ParticipantLeftEvent, is CallSessionParticipantLeftEvent -> {
-                        val activeCall = streamVideoClient?.state?.activeCall?.value
+                        val activeCall = StreamCallManager.getStreamVideo()?.state?.activeCall?.value
 
                         val callId = when (event) {
                             is ParticipantLeftEvent -> {
@@ -836,7 +843,7 @@ class StreamCallPlugin : Plugin() {
 
                     else -> {
                         updateCallStatusAndNotify(
-                            streamVideoClient?.state?.activeCall?.value?.cid ?: "",
+                            StreamCallManager.getStreamVideo()?.state?.activeCall?.value?.cid ?: "",
                             event.getEventType()
                         )
                     }
@@ -944,7 +951,8 @@ class StreamCallPlugin : Plugin() {
 
     @PluginMethod
     fun acceptCall(call: PluginCall) {
-        val ringingCall = streamVideoClient?.state?.ringingCall?.value
+        val client = StreamCallManager.getStreamVideo()
+        val ringingCall = client?.state?.ringingCall?.value
         if (ringingCall != null) {
             kotlinx.coroutines.GlobalScope.launch {
                 try {
@@ -966,7 +974,8 @@ class StreamCallPlugin : Plugin() {
     fun rejectCall(call: PluginCall) {
         Log.d("StreamCallPlugin", "rejectCall called")
         try {
-            val streamVideoCall = streamVideoClient?.state?.ringingCall?.value
+            val client = StreamCallManager.getStreamVideo()
+            val streamVideoCall = client?.state?.ringingCall?.value
             if (streamVideoCall == null) {
                 call.reject("Ringing call is null")
                 return
@@ -1004,7 +1013,7 @@ class StreamCallPlugin : Plugin() {
                 Log.d("StreamCallPlugin", "internalAcceptCall: call.accept() completed for call ${call.id}")
                 call.join()
                 Log.d("StreamCallPlugin", "internalAcceptCall: call.join() completed for call ${call.id}")
-                streamVideoClient?.state?.setActiveCall(call)
+                StreamCallManager.getStreamVideo()?.state?.setActiveCall(call)
                 Log.d("StreamCallPlugin", "internalAcceptCall: setActiveCall completed for call ${call.id}")
 
                 // Notify that call has started using helper
@@ -1047,7 +1056,7 @@ class StreamCallPlugin : Plugin() {
                             overlayView?.requestLayout()
                             Log.d("StreamCallPlugin", "internalAcceptCall: UI invalidated and layout requested for call ${call.id}")
                             // Force refresh with active call from client
-                            val activeCall = streamVideoClient?.state?.activeCall?.value
+                            val activeCall = StreamCallManager.getStreamVideo()?.state?.activeCall?.value
                             if (activeCall != null) {
                                 Log.d("StreamCallPlugin", "internalAcceptCall: Force refreshing CallContent with active call ${activeCall.id}")
                                 setOverlayContent(activeCall)
@@ -1164,7 +1173,7 @@ class StreamCallPlugin : Plugin() {
             hasActiveCallNeedingPermissions -> {
                 // Active call needing camera/microphone enabled 
                 val callToHandle = pendingAcceptCall!!
-                val activeCall = streamVideoClient?.state?.activeCall?.value
+                val activeCall = StreamCallManager.getStreamVideo()?.state?.activeCall?.value
                 
                 Log.d("StreamCallPlugin", "handlePermissionGranted: Processing call ${callToHandle.id}")
                 Log.d("StreamCallPlugin", "handlePermissionGranted: Active call in state: ${activeCall?.id}")
@@ -1230,7 +1239,7 @@ class StreamCallPlugin : Plugin() {
             hasPendingSetCamera -> {
                 Log.d("StreamCallPlugin", "handlePermissionGranted: Handling pending setCameraEnabled call.")
                 val callToHandle = pendingSetCameraCall!!
-                val activeCall = streamVideoClient?.state?.activeCall?.value
+                val activeCall = StreamCallManager.getStreamVideo()?.state?.activeCall?.value
 
                 if (activeCall != null) {
                     kotlinx.coroutines.GlobalScope.launch {
@@ -1260,7 +1269,7 @@ class StreamCallPlugin : Plugin() {
                 Log.w("StreamCallPlugin", "  - pendingAcceptCall: ${pendingAcceptCall != null}")
                 
                 // Try fallback to current ringing call for acceptance
-                val ringingCall = streamVideoClient?.state?.ringingCall?.value
+                val ringingCall = StreamCallManager.getStreamVideo()?.state?.ringingCall?.value
                 if (ringingCall != null) {
                     Log.d("StreamCallPlugin", "handlePermissionGranted: Fallback - accepting current ringing call ${ringingCall.id}")
                     kotlinx.coroutines.GlobalScope.launch {
@@ -1342,7 +1351,8 @@ class StreamCallPlugin : Plugin() {
                     if (success) {
                         // Show overlay view
                         runOnMainThread {
-                            val streamCall = streamVideoClient?.call(type = callType, id = callId)
+                            val client = StreamCallManager.getStreamVideo()
+                            val streamCall = client?.call(type = callType, id = callId)
                             streamCall?.let { activeCall ->
                                 activeCall.microphone.setEnabled(true)
                                 activeCall.camera.setEnabled(!this@StreamCallPlugin.callIsAudioOnly)
@@ -1418,7 +1428,7 @@ class StreamCallPlugin : Plugin() {
 
     private fun showPermissionSettingsDialog() {
         activity?.runOnUiThread {
-            val activeCall = streamVideoClient?.state?.activeCall?.value
+            val activeCall = StreamCallManager.getStreamVideo()?.state?.activeCall?.value
             val hasActiveCall = activeCall != null && pendingAcceptCall != null && activeCall.id == pendingAcceptCall?.id
             
             val builder = AlertDialog.Builder(activity)
@@ -1451,7 +1461,7 @@ class StreamCallPlugin : Plugin() {
 
     private fun showPermissionRequiredMessage() {
         activity?.runOnUiThread {
-            val activeCall = streamVideoClient?.state?.activeCall?.value
+            val activeCall = StreamCallManager.getStreamVideo()?.state?.activeCall?.value
             val hasActiveCall = activeCall != null && pendingAcceptCall != null && activeCall.id == pendingAcceptCall?.id
             
             val builder = AlertDialog.Builder(activity)
@@ -1478,7 +1488,7 @@ class StreamCallPlugin : Plugin() {
         val hasOutgoingCall = pendingCall != null && pendingCallUserIds != null
         val hasIncomingCall = pendingCall != null && pendingAcceptCall != null
         val hasPendingSetCamera = pendingSetCameraCall != null
-        val activeCall = streamVideoClient?.state?.activeCall?.value
+        val activeCall = StreamCallManager.getStreamVideo()?.state?.activeCall?.value
         
         when {
             hasOutgoingCall -> {
@@ -1620,7 +1630,8 @@ class StreamCallPlugin : Plugin() {
         }
 
         try {
-            val activeCall = streamVideoClient?.state?.activeCall
+            val client = StreamCallManager.getStreamVideo()
+            val activeCall = client?.state?.activeCall
             if (activeCall == null) {
                 call.reject("No active call")
                 return
@@ -1647,7 +1658,8 @@ class StreamCallPlugin : Plugin() {
     @PluginMethod
     fun isCameraEnabled(call: PluginCall) {
         try {
-            val activeCall = streamVideoClient?.state?.activeCall
+            val client = StreamCallManager.getStreamVideo()
+            val activeCall = client?.state?.activeCall
             if (activeCall == null) {
                 call.reject("No active call")
                 return
@@ -1682,7 +1694,8 @@ class StreamCallPlugin : Plugin() {
             return
         }
 
-        val activeCall = streamVideoClient?.state?.activeCall?.value
+        val client = StreamCallManager.getStreamVideo()
+        val activeCall = client?.state?.activeCall?.value
         if (activeCall == null) {
             call.reject("No active call")
             return
@@ -1740,7 +1753,7 @@ class StreamCallPlugin : Plugin() {
             // Get call information to make the decision
             val callInfo = call.get()
             val callData = callInfo.getOrNull()?.call
-            val currentUserId = streamVideoClient?.userId
+            val currentUserId = StreamCallManager.getStreamVideo()?.userId
             val createdBy = callData?.createdBy?.id
             val isCreator = createdBy == currentUserId
             
@@ -1876,8 +1889,9 @@ class StreamCallPlugin : Plugin() {
 
     @OptIn(DelicateCoroutinesApi::class)
     private suspend fun _endCall(): Boolean {
-        val activeCall = streamVideoClient?.state?.activeCall?.value
-        val ringingCall = streamVideoClient?.state?.ringingCall?.value
+        val client = StreamCallManager.getStreamVideo()
+        val activeCall = client?.state?.activeCall?.value
+        val ringingCall = client?.state?.ringingCall?.value
         
         val callToEnd = activeCall ?: ringingCall
         
@@ -1938,8 +1952,16 @@ class StreamCallPlugin : Plugin() {
                 return
             }
 
-            val selfUserId = streamVideoClient?.userId
+            val client = StreamCallManager.getStreamVideo()
+            val selfUserId = client?.userId
+            
+            Log.d("StreamCallPlugin", "Making call - Client exists: ${client != null}")
+            Log.d("StreamCallPlugin", "Making call - Client userId: $selfUserId")
+            Log.d("StreamCallPlugin", "Making call - Plugin state: $state")
+            Log.d("StreamCallPlugin", "Making call - Plugin streamVideoClient: ${streamVideoClient != null}")
+            
             if (selfUserId == null) {
+                Log.e("StreamCallPlugin", "Cannot make call - no userId available")
                 call.reject("No self-user id found. Are you not logged in?")
                 return
             }
@@ -1993,23 +2015,48 @@ class StreamCallPlugin : Plugin() {
                     )
                     
                     if (success) {
-                        // Show overlay view
+                        // Show overlay view with retry mechanism for call availability
                         runOnMainThread {
-                            val streamCall = streamVideoClient?.call(type = callType, id = callId)
-                            streamCall?.let { activeCall ->
-                                activeCall.microphone.setEnabled(true)
-                                activeCall.camera.setEnabled(!isAudioOnly)
-                                
-                                bridge?.webView?.setBackgroundColor(Color.TRANSPARENT)
-                                bridge?.webView?.bringToFront()
-                                setOverlayContent(activeCall)
-                                overlayView?.isVisible = true
-                                
-                                // Ensure overlay is behind WebView
-                                val parent = overlayView?.parent as? ViewGroup
-                                parent?.removeView(overlayView)
-                                parent?.addView(overlayView, 0)
+                            val maxRetries = 10
+                            var attempts = 0
+                            
+                            val checkCallAvailable = object : Runnable {
+                                override fun run() {
+                                    val client = StreamCallManager.getStreamVideo()
+                                    val streamCall = client?.call(type = callType, id = callId)
+                                    
+                                    Log.d("StreamCallPlugin", "Overlay setup attempt ${attempts + 1}/$maxRetries for call $callId")
+                                    
+                                    streamCall?.let { activeCall ->
+                                        Log.d("StreamCallPlugin", "Call object available, setting up overlay for call $callId")
+                                        activeCall.microphone.setEnabled(true)
+                                        activeCall.camera.setEnabled(!isAudioOnly)
+                                        
+                                        bridge?.webView?.setBackgroundColor(Color.TRANSPARENT)
+                                        bridge?.webView?.bringToFront()
+                                        setOverlayContent(activeCall)
+                                        overlayView?.isVisible = true
+                                        
+                                        // Ensure overlay is behind WebView
+                                        val parent = overlayView?.parent as? ViewGroup
+                                        parent?.removeView(overlayView)
+                                        parent?.addView(overlayView, 0)
+                                        
+                                        Log.d("StreamCallPlugin", "Overlay setup completed for call $callId")
+                                        return
+                                    }
+                                    
+                                    attempts++
+                                    if (attempts < maxRetries) {
+                                        Log.d("StreamCallPlugin", "Call object not yet available, retrying in 100ms (attempt ${attempts}/$maxRetries)")
+                                        Handler(Looper.getMainLooper()).postDelayed(this, 100)
+                                    } else {
+                                        Log.w("StreamCallPlugin", "Failed to get call object after $maxRetries attempts for call $callId")
+                                    }
+                                }
                             }
+                            
+                            checkCallAvailable.run()
                         }
                         
                         call.resolve(JSObject().apply {
@@ -2078,7 +2125,7 @@ class StreamCallPlugin : Plugin() {
                     val callType = callIdParts[0]
                     val callId = callIdParts[1]
 
-                    streamVideoClient?.call(type = callType, id = callId)?.let { call ->
+                    StreamCallManager.getStreamVideo()?.call(type = callType, id = callId)?.let { call ->
                         kotlinx.coroutines.GlobalScope.launch {
                             try {
                                 // Use endCallRaw instead of manual cleanup
@@ -2149,7 +2196,7 @@ class StreamCallPlugin : Plugin() {
                 val callType = callIdParts[0]
                 val callId = callIdParts[1]
 
-                streamVideoClient?.call(type = callType, id = callId)?.let { call ->
+                StreamCallManager.getStreamVideo()?.call(type = callType, id = callId)?.let { call ->
                     kotlinx.coroutines.GlobalScope.launch {
                         try {
                             // Use endCallRaw instead of manual cleanup
@@ -2191,7 +2238,8 @@ class StreamCallPlugin : Plugin() {
     @PluginMethod
     fun setSpeaker(call: PluginCall) {
         val name = call.getString("name") ?: "speaker"
-        val activeCall = streamVideoClient?.state?.activeCall?.value
+        val client = StreamCallManager.getStreamVideo()
+        val activeCall = client?.state?.activeCall?.value
         if (activeCall != null) {
             if (name == "speaker")
                 activeCall.speaker.setSpeakerPhone(enable = true)
@@ -2208,7 +2256,8 @@ class StreamCallPlugin : Plugin() {
     @PluginMethod
     fun switchCamera(call: PluginCall) {
         val camera = call.getString("camera") ?: "front"
-        val activeCall = streamVideoClient?.state?.activeCall?.value
+        val client = StreamCallManager.getStreamVideo()
+        val activeCall = client?.state?.activeCall?.value
         if (activeCall != null) {
             if (camera == "front")
                 activeCall.camera.setDirection(CameraDirection.Front)
@@ -2406,7 +2455,7 @@ class StreamCallPlugin : Plugin() {
                 val cid = intent.streamCallId(NotificationHandler.INTENT_EXTRA_CALL_CID)
                 if (cid != null) {
                     Log.d("StreamCallPlugin", "BroadcastReceiver: ACCEPT_CALL broadcast received with cid: $cid")
-                    val call = streamVideoClient?.call(id = cid.id, type = cid.type)
+                    val call = StreamCallManager.getStreamVideo()?.call(id = cid.id, type = cid.type)
                     if (call != null) {
                         Log.d("StreamCallPlugin", "BroadcastReceiver: Accepting call with cid: $cid")
                         kotlinx.coroutines.GlobalScope.launch {
