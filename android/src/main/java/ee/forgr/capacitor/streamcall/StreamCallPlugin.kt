@@ -10,7 +10,6 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
-import android.content.SharedPreferences
 import android.content.pm.PackageManager
 import android.graphics.Color
 import android.media.RingtoneManager
@@ -42,9 +41,6 @@ import com.getcapacitor.Plugin
 import com.getcapacitor.PluginCall
 import com.getcapacitor.PluginMethod
 import com.getcapacitor.annotation.CapacitorPlugin
-import com.google.firebase.messaging.FirebaseMessaging
-import io.getstream.android.push.PushProvider
-import io.getstream.android.push.firebase.FirebasePushDeviceGenerator
 import io.getstream.android.push.permissions.ActivityLifecycleCallbacks
 import io.getstream.android.video.generated.models.CallAcceptedEvent
 import io.getstream.android.video.generated.models.CallCreatedEvent
@@ -64,34 +60,22 @@ import io.getstream.video.android.compose.ui.components.call.renderer.RegularVid
 import io.getstream.video.android.compose.ui.components.video.VideoScalingType
 import io.getstream.video.android.core.Call
 import io.getstream.video.android.core.CameraDirection
-import io.getstream.video.android.core.GEO
 import io.getstream.video.android.core.RealtimeConnection
 import io.getstream.video.android.core.StreamVideo
-import io.getstream.video.android.core.StreamVideoBuilder
 import io.getstream.video.android.core.EventSubscription
 import io.getstream.video.android.core.events.ParticipantLeftEvent
 import io.getstream.video.android.core.internal.InternalStreamVideoApi
-import io.getstream.video.android.core.notifications.NotificationConfig
 import io.getstream.video.android.core.notifications.NotificationHandler
-import io.getstream.video.android.core.notifications.handlers.CompatibilityStreamNotificationHandler
-import io.getstream.video.android.core.notifications.handlers.StreamNotificationBuilderInterceptors
-import androidx.core.app.NotificationCompat
-import android.app.PendingIntent
 import io.getstream.video.android.core.sounds.RingingConfig
-import io.getstream.video.android.core.sounds.toSounds
-import io.getstream.video.android.model.Device
-import io.getstream.video.android.model.User
 import io.getstream.video.android.model.streamCallId
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.DelicateCoroutinesApi
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.tasks.await
 import androidx.core.net.toUri
 import org.json.JSONObject
 import androidx.core.graphics.toColorInt
-import androidx.core.content.edit
 
 // I am not a religious pearson, but at this point, I am not sure even god himself would understand this code
 // It's a spaghetti-like, tangled, unreadable mess and frankly, I am deeply sorry for the code crimes commited in the Android impl
@@ -148,6 +132,19 @@ class StreamCallPlugin : Plugin() {
     fun incomingOnlyRingingConfig(): RingingConfig = object : RingingConfig {
         override val incomingCallSoundUri: Uri? = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_RINGTONE)
         override val outgoingCallSoundUri: Uri? = null
+    }
+
+    companion object {
+        /**
+         * Pre-load initialization method for compatibility
+         * Delegates to StreamCallManager for separated service initialization
+         */
+        @JvmStatic
+        fun preLoadInit(application: Application) {
+            Log.d("StreamCallPlugin", "preLoadInit called - delegating to StreamCallManager")
+            StreamCallManager.initialize(application)
+        }
+        
     }
 
     private fun runOnMainThread(action: () -> Unit) {
@@ -209,6 +206,8 @@ class StreamCallPlugin : Plugin() {
         } catch (e: Exception) {
             Log.e("StreamCallPlugin", "Error checking for fresh install", e)
         }
+        // Initialize StreamCallManager
+        StreamCallManager.initialize(context)
         // general init
         initializeStreamVideo()
         setupViews()
@@ -474,29 +473,24 @@ class StreamCallPlugin : Plugin() {
         val imageURL = call.getString("imageURL")
 
         try {
-            // Create user object
-            val user = User(
-                id = userId,
-                name = name,
-                image = imageURL,
-                custom = emptyMap() // Initialize with empty map for custom data
-            )
-
-            val savedCredentials = SecureUserRepository.getInstance(this.context).loadCurrentUser()
-            val hadSavedCredentials = savedCredentials != null
-
-            // Create credentials and save them
-            val credentials = UserCredentials(user, token)
-            SecureUserRepository.getInstance(context).save(credentials)
-
-            // Initialize Stream Video with new credentials
-            if (!hadSavedCredentials || (savedCredentials.user.id != userId)) {
-                initializeStreamVideo()
+            // Use StreamCallManager for login
+            kotlinx.coroutines.GlobalScope.launch {
+                try {
+                    val success = StreamCallManager.login(apiKey, token, userId, name, imageURL)
+                    if (success) {
+                        streamVideoClient = StreamCallManager.getStreamVideo()
+                        registerEventHandlers()
+                        state = State.INITIALIZED
+                        call.resolve(JSObject().apply {
+                            put("success", true)
+                        })
+                    } else {
+                        call.reject("Failed to login with StreamCallManager")
+                    }
+                } catch (e: Exception) {
+                    call.reject("Login failed", e)
+                }
             }
-
-            val ret = JSObject()
-            ret.put("success", true)
-            call.resolve(ret)
         } catch (e: Exception) {
             call.reject("Failed to login", e)
         }
@@ -505,28 +499,23 @@ class StreamCallPlugin : Plugin() {
     @PluginMethod
     fun logout(call: PluginCall) {
         try {
-            // Clear stored credentials
-            SecureUserRepository.getInstance(context).removeCurrentUser()
+            // Clear event subscriptions
             eventSubscription?.dispose()
             activeCallStateJob?.cancel()
             cameraStatusJob?.cancel()
             microphoneStatusJob?.cancel()
 
-            // Properly cleanup the client
+            // Use StreamCallManager for logout
             kotlinx.coroutines.GlobalScope.launch {
-                streamVideoClient?.let {
-                    magicDeviceDelete(it)
-                    it.logOut()
-                    StreamVideo.removeClient()
-                }
-
-                streamVideoClient = null
-                state = State.NOT_INITIALIZED
-
-                val ret = JSObject()
-                ret.put("success", true)
-                call.resolve(ret)
+                StreamCallManager.logout()
             }
+            
+            streamVideoClient = null
+            state = State.NOT_INITIALIZED
+
+            call.resolve(JSObject().apply {
+                put("success", true)
+            })
         } catch (e: Exception) {
             call.reject("Failed to logout", e)
         }
@@ -534,7 +523,7 @@ class StreamCallPlugin : Plugin() {
 
     @OptIn(DelicateCoroutinesApi::class)
     fun initializeStreamVideo(passedContext: Context? = null, passedApplication: Application? = null) {
-        Log.d("StreamCallPlugin", "initializeStreamVideo called")
+        Log.d("StreamCallPlugin", "initializeStreamVideo called - using StreamCallManager")
         if (state == State.INITIALIZING) {
             Log.v("StreamCallPlugin", "Returning, already in the process of initializing")
             return
@@ -544,96 +533,37 @@ class StreamCallPlugin : Plugin() {
         if (passedContext != null) {
             this.savedContext = passedContext
         }
-        val contextToUse = passedContext ?: this.context
-
-        // Try to get user credentials from repository
-        val savedCredentials = SecureUserRepository.getInstance(contextToUse).loadCurrentUser()
-        if (savedCredentials == null) {
-            Log.v("StreamCallPlugin", "Saved credentials are null")
-            state = State.NOT_INITIALIZED
-            return
-        }
 
         try {
+            // Check if StreamCallManager already has a client
+            if (StreamCallManager.isLoggedIn()) {
+                Log.v("StreamCallPlugin", "StreamCallManager already has client, reusing")
+                streamVideoClient = StreamCallManager.getStreamVideo()
+                if (streamVideoClient != null) {
+                    registerEventHandlers()
+                    state = State.INITIALIZED
+                    initializationTime = System.currentTimeMillis()
+                    return
+                }
+            }
+
             // Check if we can reuse existing StreamVideo singleton client
             if (StreamVideo.isInstalled) {
                 Log.v("StreamCallPlugin", "Found existing StreamVideo singleton client")
-                if (streamVideoClient == null) {
-                    Log.v("StreamCallPlugin", "Plugin's streamVideoClient is null, reusing singleton and registering event handlers")
-                    streamVideoClient = StreamVideo.instance()
-                    // Register event handlers since streamVideoClient was null
-                    registerEventHandlers()
-                } else {
-                    Log.v("StreamCallPlugin", "Plugin already has streamVideoClient, skipping event handler registration")
-                }
+                streamVideoClient = StreamVideo.instance()
+                registerEventHandlers()
                 state = State.INITIALIZED
                 initializationTime = System.currentTimeMillis()
                 return
             }
 
-            // If we reach here, we need to create a new client
-            Log.v("StreamCallPlugin", "No existing StreamVideo singleton client, creating new one")
-
-            // unsafe cast, add better handling
-            val application = contextToUse.applicationContext as Application
-            Log.d("StreamCallPlugin", "No existing StreamVideo singleton client, creating new one")
-            val notificationConfig = NotificationConfig(
-                pushDeviceGenerators = listOf(
-                    FirebasePushDeviceGenerator(
-                        providerName = "firebase",
-                        context = contextToUse
-                    )
-                ),
-                requestPermissionOnAppLaunch = { true },
-                notificationHandler = CompatibilityStreamNotificationHandler(
-                    application = contextToUse as Application,
-                    intentResolver = CustomStreamIntentResolver(contextToUse),
-                    initialNotificationBuilderInterceptor = object : StreamNotificationBuilderInterceptors() {
-                        override fun onBuildIncomingCallNotification(
-                            builder: NotificationCompat.Builder,
-                            fullScreenPendingIntent: PendingIntent,
-                            acceptCallPendingIntent: PendingIntent,
-                            rejectCallPendingIntent: PendingIntent,
-                            callerName: String?,
-                            shouldHaveContentIntent: Boolean
-                        ): NotificationCompat.Builder {
-                            return builder.setContentIntent(fullScreenPendingIntent)
-                                .setFullScreenIntent(fullScreenPendingIntent, true)
-                        }
-                    }
-                )
-            )
-
-            val soundsConfig = incomingOnlyRingingConfig()
-
-            // Initialize StreamVideo client
-            streamVideoClient = StreamVideoBuilder(
-                context = contextToUse,
-                apiKey = getEffectiveApiKey(contextToUse),
-                geo = GEO.GlobalEdgeNetwork,
-                user = savedCredentials.user,
-                token = savedCredentials.tokenValue,
-                notificationConfig = notificationConfig,
-                sounds = soundsConfig.toSounds(),
-                // loggingLevel = LoggingLevel(priority = Priority.DEBUG)
-            ).build()
-
-            // don't do event handler registration when activity may be null
-            if (passedContext != null) {
-                Log.w("StreamCallPlugin", "Ignoring event listeners for initializeStreamVideo")
-                passedApplication?.let {
-                    registerActivityEventListener(it)
-                }
-                initializationTime = System.currentTimeMillis()
-                this.state = State.INITIALIZED
-                return
+            // For background initialization, register activity listener
+            passedApplication?.let {
+                registerActivityEventListener(it)
             }
 
-            registerEventHandlers()
-
-            Log.v("StreamCallPlugin", "Initialization finished")
-            initializationTime = System.currentTimeMillis()
             state = State.INITIALIZED
+            initializationTime = System.currentTimeMillis()
         } catch (e: Exception) {
             state = State.NOT_INITIALIZED
             throw e
@@ -1395,8 +1325,51 @@ class StreamCallPlugin : Plugin() {
             // Clear pending call data
             clearPendingCall()
             
-            // Execute the call creation logic
-            createAndStartCall(call, userIds, callType, shouldRing, team, custom, this.callIsAudioOnly)
+            // Execute the call creation logic using StreamCallManager
+            val callId = java.util.UUID.randomUUID().toString()
+            kotlinx.coroutines.GlobalScope.launch {
+                try {
+                    val success = StreamCallManager.makeCall(
+                        callType = callType,
+                        callId = callId,
+                        userIds = userIds,
+                        ring = shouldRing,
+                        video = !this@StreamCallPlugin.callIsAudioOnly,
+                        team = team,
+                        custom = custom?.toMap()
+                    )
+                    
+                    if (success) {
+                        // Show overlay view
+                        runOnMainThread {
+                            val streamCall = streamVideoClient?.call(type = callType, id = callId)
+                            streamCall?.let { activeCall ->
+                                activeCall.microphone.setEnabled(true)
+                                activeCall.camera.setEnabled(!this@StreamCallPlugin.callIsAudioOnly)
+                                
+                                bridge?.webView?.setBackgroundColor(Color.TRANSPARENT)
+                                bridge?.webView?.bringToFront()
+                                setOverlayContent(activeCall)
+                                overlayView?.isVisible = true
+                                
+                                // Ensure overlay is behind WebView
+                                val parent = overlayView?.parent as? ViewGroup
+                                parent?.removeView(overlayView)
+                                parent?.addView(overlayView, 0)
+                            }
+                        }
+                        
+                        call.resolve(JSObject().apply {
+                            put("success", true)
+                        })
+                    } else {
+                        call.reject("Failed to create call via StreamCallManager")
+                    }
+                } catch (e: Exception) {
+                    Log.e("StreamCallPlugin", "Error making pending call via StreamCallManager: ${e.message}")
+                    call.reject("Failed to make call: ${e.message}")
+                }
+            }
         } else {
             Log.w("StreamCallPlugin", "executePendingCall: Missing pending call data")
             call?.reject("Internal error: missing call parameters")
@@ -1417,66 +1390,7 @@ class StreamCallPlugin : Plugin() {
 
 
 
-    @OptIn(DelicateCoroutinesApi::class, InternalStreamVideoApi::class)
-    private fun createAndStartCall(call: PluginCall, userIds: List<String>, callType: String, shouldRing: Boolean, team: String?, custom: JSObject?, isAudioOnly: Boolean) {
-        val selfUserId = streamVideoClient?.userId
-        if (selfUserId == null) {
-            call.reject("No self-user id found. Are you not logged in?")
-            return
-        }
 
-        val callId = java.util.UUID.randomUUID().toString()
-
-        // Create and join call in a coroutine
-        kotlinx.coroutines.GlobalScope.launch {
-            try {
-                // Create the call object
-                val streamCall = streamVideoClient?.call(type = callType, id = callId)
-
-                // Note: We no longer start tracking here - we'll wait for CallSessionStartedEvent
-                // instead, which contains the actual participant list
-
-
-                Log.d("StreamCallPlugin", "Creating call with members...")
-                // Create the call with all members
-                val createResult = streamCall?.create(
-                    memberIds = userIds + selfUserId,
-                    custom = custom?.toMap() ?: emptyMap(),
-                    ring = shouldRing,
-                    team = team,
-                    video = !isAudioOnly
-                )
-
-                if (createResult?.isFailure == true) {
-                    throw (createResult.errorOrNull() ?: RuntimeException("Unknown error creating call")) as Throwable
-                }
-
-                Log.d("StreamCallPlugin", "Setting overlay visible for outgoing call $callId")
-                // Show overlay view
-                activity?.runOnUiThread {
-                    streamCall?.microphone?.setEnabled(true)
-                    streamCall?.camera?.setEnabled(!isAudioOnly)
-
-                    bridge?.webView?.setBackgroundColor(Color.TRANSPARENT) // Make webview transparent
-                    bridge?.webView?.bringToFront() // Ensure WebView is on top and transparent
-                    setOverlayContent(streamCall)
-                    overlayView?.isVisible = true
-                    // Ensure overlay is behind WebView by adjusting its position in the parent
-                    val parent = overlayView?.parent as? ViewGroup
-                    parent?.removeView(overlayView)
-                    parent?.addView(overlayView, 0) // Add at index 0 to ensure it's behind other views
-                }
-
-                // Resolve the call with success
-                call.resolve(JSObject().apply {
-                    put("success", true)
-                })
-            } catch (e: Exception) {
-                Log.e("StreamCallPlugin", "Error making call: ${e.message}")
-                call.reject("Failed to make call: ${e.message}")
-            }
-        }
-    }
 
     // Function to request required permissions
     private fun requestPermissions(isAudioOnly: Boolean) {
@@ -2065,8 +1979,50 @@ class StreamCallPlugin : Plugin() {
                 return // Don't reject immediately, wait for permission result
             }
 
-            // Execute call creation immediately if permissions are granted
-            createAndStartCall(call, userIds, callType, shouldRing, team, custom, isAudioOnly)
+            // Execute call creation immediately if permissions are granted using StreamCallManager
+            kotlinx.coroutines.GlobalScope.launch {
+                try {
+                    val success = StreamCallManager.makeCall(
+                        callType = callType,
+                        callId = callId,
+                        userIds = userIds,
+                        ring = shouldRing,
+                        video = !isAudioOnly,
+                        team = team,
+                        custom = custom?.toMap()
+                    )
+                    
+                    if (success) {
+                        // Show overlay view
+                        runOnMainThread {
+                            val streamCall = streamVideoClient?.call(type = callType, id = callId)
+                            streamCall?.let { activeCall ->
+                                activeCall.microphone.setEnabled(true)
+                                activeCall.camera.setEnabled(!isAudioOnly)
+                                
+                                bridge?.webView?.setBackgroundColor(Color.TRANSPARENT)
+                                bridge?.webView?.bringToFront()
+                                setOverlayContent(activeCall)
+                                overlayView?.isVisible = true
+                                
+                                // Ensure overlay is behind WebView
+                                val parent = overlayView?.parent as? ViewGroup
+                                parent?.removeView(overlayView)
+                                parent?.addView(overlayView, 0)
+                            }
+                        }
+                        
+                        call.resolve(JSObject().apply {
+                            put("success", true)
+                        })
+                    } else {
+                        call.reject("Failed to create call via StreamCallManager")
+                    }
+                } catch (e: Exception) {
+                    Log.e("StreamCallPlugin", "Error making call via StreamCallManager: ${e.message}")
+                    call.reject("Failed to make call: ${e.message}")
+                }
+            }
         } catch (e: Exception) {
             call.reject("Failed to make call: ${e.message}")
         }
@@ -2213,24 +2169,7 @@ class StreamCallPlugin : Plugin() {
         }
     }
 
-    private suspend fun magicDeviceDelete(streamVideoClient: StreamVideo) {
-        try {
-            Log.d("StreamCallPlugin", "Starting magicDeviceDelete operation")
 
-            FirebaseMessaging.getInstance().token.await()?.let {
-                Log.d("StreamCallPlugin", "Found firebase token")
-                val device = Device(
-                    id = it,
-                    pushProvider = PushProvider.FIREBASE.key,
-                    pushProviderName = "firebase",
-                )
-
-                streamVideoClient.deleteDevice(device)
-            }
-        } catch (e: Exception) {
-            Log.e("StreamCallPlugin", "Error in magicDeviceDelete", e)
-        }
-    }
 
     @PluginMethod
     fun getCallStatus(call: PluginCall) {
@@ -2322,43 +2261,44 @@ class StreamCallPlugin : Plugin() {
         }
     }
 
-    // Helper functions for managing dynamic API key in SharedPreferences
-    private fun saveDynamicApiKey(apiKey: String) {
-        val sharedPrefs = getApiKeyPreferences()
-        sharedPrefs.edit {
-            putString(DYNAMIC_API_KEY_PREF, apiKey)
+    @PluginMethod
+    fun clearDynamicStreamVideoApikey(call: PluginCall) {
+        try {
+            ApiKeyManager.clearDynamicApiKey(context)
+            Log.d("StreamCallPlugin", "Dynamic API key cleared successfully")
+            call.resolve(JSObject().apply {
+                put("success", true)
+            })
+        } catch (e: Exception) {
+            Log.e("StreamCallPlugin", "Error clearing dynamic API key", e)
+            call.reject("Failed to clear API key: ${e.message}")
         }
+    }
+
+    @PluginMethod
+    fun hasDynamicStreamVideoApikey(call: PluginCall) {
+        try {
+            val hasDynamicKey = ApiKeyManager.hasDynamicApiKey(context)
+            call.resolve(JSObject().apply {
+                put("hasDynamicKey", hasDynamicKey)
+            })
+        } catch (e: Exception) {
+            Log.e("StreamCallPlugin", "Error checking dynamic API key", e)
+            call.reject("Failed to check API key: ${e.message}")
+        }
+    }
+
+    // Helper functions for managing dynamic API key in SharedPreferences - delegate to ApiKeyManager
+    private fun saveDynamicApiKey(apiKey: String) {
+        ApiKeyManager.saveDynamicApiKey(context, apiKey)
     }
 
     private fun getDynamicApiKey(): String? {
-        val sharedPrefs = getApiKeyPreferences()
-        return sharedPrefs.getString(DYNAMIC_API_KEY_PREF, null)
-    }
-
-    private fun getDynamicApiKey(context: Context): String? {
-        val sharedPrefs = getApiKeyPreferences(context)
-        return sharedPrefs.getString(DYNAMIC_API_KEY_PREF, null)
-    }
-
-    private fun getApiKeyPreferences(): SharedPreferences {
-        return context.getSharedPreferences(API_KEY_PREFS_NAME, Context.MODE_PRIVATE)
-    }
-
-    private fun getApiKeyPreferences(context: Context): SharedPreferences {
-        return context.getSharedPreferences(API_KEY_PREFS_NAME, Context.MODE_PRIVATE)
+        return ApiKeyManager.getDynamicApiKey(context)
     }
 
     private fun getEffectiveApiKey(context: Context): String {
-        // A) Check if the key exists in the custom preference
-        val dynamicApiKey = getDynamicApiKey(context)
-        return if (!dynamicApiKey.isNullOrEmpty() && dynamicApiKey.trim().isNotEmpty()) {
-            Log.d("StreamCallPlugin", "Using dynamic API key")
-            dynamicApiKey
-        } else {
-            // B) If not, use R.string.CAPACITOR_STREAM_VIDEO_APIKEY
-            Log.d("StreamCallPlugin", "Using static API key from resources")
-            context.getString(R.string.CAPACITOR_STREAM_VIDEO_APIKEY)
-        }
+        return ApiKeyManager.getEffectiveApiKey(context, context.getString(R.string.CAPACITOR_STREAM_VIDEO_APIKEY))
     }
 
     // Helper method to update call status and notify listeners
@@ -2499,21 +2439,7 @@ class StreamCallPlugin : Plugin() {
         }
     }
 
-    companion object {
-        @JvmStatic fun preLoadInit(ctx: Context, app: Application) {
-            holder ?: run {
-                val p = StreamCallPlugin()
-                p.savedContext = ctx
-                p.initializeStreamVideo(ctx, app)
-                holder = p
-            }
-        }
-        private var holder: StreamCallPlugin? = null
-        
-        // Constants for SharedPreferences
-        private const val API_KEY_PREFS_NAME = "stream_video_api_key_prefs"
-        private const val DYNAMIC_API_KEY_PREF = "dynamic_api_key"
-    }
+
 
     private suspend fun getIsAudioOnly(call: Call): Boolean {
         val callInfoResult = call.get()

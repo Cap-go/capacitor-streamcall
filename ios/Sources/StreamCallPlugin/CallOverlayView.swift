@@ -23,8 +23,8 @@ class CallOverlayViewFactory: ViewFactory {
             call: call
         )
     }
-    
-    public func makeVideoCallParticipantModifier(
+
+    func makeVideoCallParticipantModifier(
         participant: CallParticipant,
         call: Call?,
         availableFrame: CGRect,
@@ -40,19 +40,19 @@ class CallOverlayViewFactory: ViewFactory {
             decorations: [.speaking] // Here we only want the speaking decoration
         )
     }
-    
-    public func makeLocalParticipantViewModifier(
+
+    func makeLocalParticipantViewModifier(
         localParticipant: CallParticipant,
         callSettings: Binding<CallSettings>,
         call: Call?
     ) -> some ViewModifier {
         LocalParticipantViewModifier(
-                localParticipant: localParticipant,
-                call: call,
-                callSettings: callSettings,
-                showAllInfo: true,
+            localParticipant: localParticipant,
+            call: call,
+            callSettings: callSettings,
+            showAllInfo: true,
             decorations: [.speaking] // Here we only need the speaking decoration
-            )
+        )
     }
 }
 

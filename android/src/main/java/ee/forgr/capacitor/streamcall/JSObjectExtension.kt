@@ -1,5 +1,6 @@
 package ee.forgr.capacitor.streamcall
 
+import com.getcapacitor.JSObject
 import org.json.JSONArray
 import org.json.JSONObject
 
@@ -35,4 +36,25 @@ fun JSONArray.toList(): List<Any> {
         list.add(value)
     }
     return list
+}
+
+// Extension for Capacitor JSObject
+fun JSObject.toMap(): Map<String, Any> {
+    val map = mutableMapOf<String, Any>()
+    val keys = this.keys()
+    while (keys.hasNext()) {
+        val key = keys.next()
+        var value = this.get(key)
+
+        // Handle nested objects and arrays
+        value = when (value) {
+            is JSObject -> value.toMap()
+            is JSONObject -> value.toMap()
+            is JSONArray -> value.toList()
+            else -> value
+        }
+
+        map[key] = value
+    }
+    return map
 }

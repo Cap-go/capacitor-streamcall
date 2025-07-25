@@ -41,10 +41,10 @@ public class DemoApplication extends Application {
         // Initialize Firebase
         com.google.firebase.FirebaseApp.initializeApp(this);
          try {
-            StreamCallPlugin.preLoadInit(this, this);
-            Log.i(TAG, "StreamVideo Plugin preLoadInit invoked successfully");
+            StreamCallPlugin.preLoadInit(this);
+            Log.i(TAG, "StreamCallPlugin preLoadInit invoked successfully (using StreamCallManager)");
          } catch (Exception e) {
-             Log.e(TAG, "Failed to pre-initialize StreamVideo Plugin", e);
+             Log.e(TAG, "Failed to pre-initialize StreamCallPlugin", e);
          }
         Log.i(TAG, "Application initialization completed");
     }

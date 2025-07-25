@@ -104,7 +104,7 @@ public void onCreate() {
   
   // Pre-initialize StreamCall plugin
   try {
-    StreamCallPlugin.preLoadInit(this, this);
+    StreamCallPlugin.preLoadInit(this);
   } catch (Exception e) {
     Log.e("App", "Failed to pre-initialize StreamVideo Plugin", e);
   }
@@ -254,6 +254,8 @@ export class CallService {
 * [`getCallInfo(...)`](#getcallinfo)
 * [`setDynamicStreamVideoApikey(...)`](#setdynamicstreamvideoapikey)
 * [`getDynamicStreamVideoApikey()`](#getdynamicstreamvideoapikey)
+* [`clearDynamicStreamVideoApikey()`](#cleardynamicstreamvideoapikey)
+* [`hasDynamicStreamVideoApikey()`](#hasdynamicstreamvideoapikey)
 * [Interfaces](#interfaces)
 * [Type Aliases](#type-aliases)
 * [Enums](#enums)
@@ -534,6 +536,32 @@ getDynamicStreamVideoApikey() => Promise<DynamicApiKeyResponse>
 Get the currently set dynamic Stream Video API key
 
 **Returns:** <code>Promise&lt;<a href="#dynamicapikeyresponse">DynamicApiKeyResponse</a>&gt;</code>
+
+--------------------
+
+
+### clearDynamicStreamVideoApikey()
+
+```typescript
+clearDynamicStreamVideoApikey() => Promise<SuccessResponse>
+```
+
+Clear the dynamic API key, falling back to static key
+
+**Returns:** <code>Promise&lt;<a href="#successresponse">SuccessResponse</a>&gt;</code>
+
+--------------------
+
+
+### hasDynamicStreamVideoApikey()
+
+```typescript
+hasDynamicStreamVideoApikey() => Promise<{ hasDynamicKey: boolean; }>
+```
+
+Check if a dynamic API key is currently set
+
+**Returns:** <code>Promise&lt;{ hasDynamicKey: boolean; }&gt;</code>
 
 --------------------
 
@@ -831,7 +859,9 @@ The JSON representation for <a href="#listvalue">`ListValue`</a> is JSON array.
 
 Construct a type with a set of properties K of type T
 
-<code>{ [P in K]: T; }</code>
+<code>{
+ [P in K]: T;
+ }</code>
 
 
 #### CallState

@@ -839,4 +839,12 @@ export class StreamCallWeb extends WebPlugin implements StreamCallPlugin {
   async getDynamicStreamVideoApikey(): Promise<DynamicApiKeyResponse> {
     throw new Error('getDynamicStreamVideoApikey is not implemented on web platform');
   }
+
+  async clearDynamicStreamVideoApikey(): Promise<SuccessResponse> {
+    throw new Error('clearDynamicStreamVideoApikey is not implemented on web platform');
+  }
+
+  async hasDynamicStreamVideoApikey(): Promise<{ hasDynamicKey: boolean }> {
+    throw new Error('hasDynamicStreamVideoApikey is not implemented on web platform');
+  }
 }

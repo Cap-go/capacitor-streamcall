@@ -346,6 +346,23 @@ export interface StreamCallPlugin {
    * }
    */
   getDynamicStreamVideoApikey(): Promise<DynamicApiKeyResponse>;
+
+  /**
+   * Clear the dynamic API key, falling back to static key
+   * @returns {Promise<SuccessResponse>} Success status
+   * @example
+   * await StreamCall.clearDynamicStreamVideoApikey();
+   */
+  clearDynamicStreamVideoApikey(): Promise<SuccessResponse>;
+
+  /**
+   * Check if a dynamic API key is currently set
+   * @returns {Promise<{ hasDynamicKey: boolean }>} Whether a dynamic key exists
+   * @example
+   * const result = await StreamCall.hasDynamicStreamVideoApikey();
+   * console.log('Has dynamic key:', result.hasDynamicKey);
+   */
+  hasDynamicStreamVideoApikey(): Promise<{ hasDynamicKey: boolean }>;
 }
 
 /**
