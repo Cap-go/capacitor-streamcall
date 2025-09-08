@@ -23,7 +23,7 @@
     "@angular/router": "^19.0.0",
     "@capacitor/app": "7.0.0",
     "@capacitor/core": "7.0.1",
-    "@capacitor/haptics": "7.0.0",
+    "@capacitor/haptics": "7.0.2",
     "@capacitor/keyboard": "^7.0.0",
     "@capacitor/status-bar": "7.0.0",
     "@capawesome/capacitor-android-edge-to-edge-support": "^7.2.2",
