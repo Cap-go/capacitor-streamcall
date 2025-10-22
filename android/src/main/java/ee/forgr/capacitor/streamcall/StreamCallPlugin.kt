@@ -79,6 +79,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import io.getstream.video.android.core.sounds.RingingConfig
 import io.getstream.video.android.core.sounds.toSounds
+import io.getstream.video.android.core.sounds.enableRingingCallVibrationConfig
 import io.getstream.video.android.model.Device
 import io.getstream.video.android.model.User
 import io.getstream.video.android.model.streamCallId
@@ -863,7 +864,8 @@ class StreamCallPlugin : Plugin() {
         token = savedCredentials.tokenValue,
         notificationConfig = notificationConfig,
         sounds = soundsConfig.toSounds(),
-        loggingLevel = LoggingLevel(priority = Priority.INFO)
+        loggingLevel = LoggingLevel(priority = Priority.INFO),
+        vibrationConfig = enableRingingCallVibrationConfig()
       ).build()
 
       // don't do event handler registration when activity may be null
