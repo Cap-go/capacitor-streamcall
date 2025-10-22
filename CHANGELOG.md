@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## [7.3.0](https://github.com/Cap-go/capacitor-streamcall/compare/7.2.1...7.3.0) (2025-10-22)
+
+
+### Features
+
+* **android:** Add vibrationConfig introduced in v1.14.0 ([4a63035](https://github.com/Cap-go/capacitor-streamcall/commit/4a63035a2c641efa3182bee07328b5b79227c71a))
+
 ## [7.2.1](https://github.com/Cap-go/capacitor-streamcall/compare/7.2.0...7.2.1) (2025-10-22)
 
 
