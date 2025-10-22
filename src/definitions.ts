@@ -261,7 +261,6 @@ export interface StreamCallPlugin {
    */
   endCall(): Promise<SuccessResponse>;
 
-
   /**
    * Join an existing call
    * @param {{  callId: string, callType: string  }} options - Microphone state
@@ -269,8 +268,7 @@ export interface StreamCallPlugin {
    * @example
    * await StreamCall.joinCall({ callId: 'call001', callType: 'default' });
    */
-  joinCall?(options: { callId: string, callType: string }): Promise<SuccessResponse>;
-
+  joinCall?(options: { callId: string; callType: string }): Promise<SuccessResponse>;
 
   /**
    * Enable or disable microphone
@@ -372,7 +370,6 @@ export interface StreamCallPlugin {
    * console.log(ringingCall);
    */
   getRingingCall?(): Promise<CallEvent>;
-
 
   /**
    * Cycle through the available video layouts
