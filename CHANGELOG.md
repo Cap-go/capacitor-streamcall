@@ -2,6 +2,19 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## [7.5.0](https://github.com/Cap-go/capacitor-streamcall/compare/7.4.0...7.5.0) (2025-10-23)
+
+
+### Features
+
+* Update Discord username format in release notifications ([0a75f2d](https://github.com/Cap-go/capacitor-streamcall/commit/0a75f2d205d0ea2c8e12eff93bc5f65fec569fc6))
+
+
+### Bug Fixes
+
+* definition ([fa32141](https://github.com/Cap-go/capacitor-streamcall/commit/fa321413ccccf7d58ef518bc4c8e2bc785c9cc19))
+* remove footer in discord ([4056943](https://github.com/Cap-go/capacitor-streamcall/commit/40569439ff4e43eb869ace8a1488367ba4f6b526))
+
 ## [7.4.0](https://github.com/Cap-go/capacitor-streamcall/compare/7.3.0...7.4.0) (2025-10-23)
 
 
