@@ -12,6 +12,7 @@ import WebKit
  */
 @objc(StreamCallPlugin)
 public class StreamCallPlugin: CAPPlugin, CAPBridgedPlugin {
+    private let PLUGIN_VERSION: String = ""
     public let identifier = "StreamCallPlugin"
     public let jsName = "StreamCall"
     public let pluginMethods: [CAPPluginMethod] = [
@@ -32,7 +33,8 @@ public class StreamCallPlugin: CAPPlugin, CAPBridgedPlugin {
         CAPPluginMethod(name: "getCallInfo", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "setDynamicStreamVideoApikey", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "getDynamicStreamVideoApikey", returnType: CAPPluginReturnPromise),
-        CAPPluginMethod(name: "getCurrentUser", returnType: CAPPluginReturnPromise)
+        CAPPluginMethod(name: "getCurrentUser", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "getPluginVersion", returnType: CAPPluginReturnPromise)
     ]
 
     private enum State {
@@ -240,20 +242,20 @@ public class StreamCallPlugin: CAPPlugin, CAPBridgedPlugin {
                         notifyListeners("callEvent", data: data)
 
                     case let .typeCallSessionParticipantCountsUpdatedEvent(response):
-                            let activeCall = streamVideo.state.activeCall;
-                            let callDropped = self.currentCallId == response.callCid && activeCall == nil;
-                            let onlyOneParticipant = activeCall?.cId == response.callCid && activeCall?.state.participantCount == 1;
-                            if onlyOneParticipant || callDropped {
-                                self.endCallInternal()
-                            } else {
-                                print("""
+                        let activeCall = streamVideo.state.activeCall
+                        let callDropped = self.currentCallId == response.callCid && activeCall == nil
+                        let onlyOneParticipant = activeCall?.cId == response.callCid && activeCall?.state.participantCount == 1
+                        if onlyOneParticipant || callDropped {
+                            self.endCallInternal()
+                        } else {
+                            print("""
                                 onlyOneParticipant check:
                                 - activeCall?.cId: \(String(describing: activeCall?.cId))
                                 - response.callCid: \(response.callCid)
                                 - activeCall?.state.participantCount: \(String(describing: activeCall?.state.participantCount))
                                 - Result (onlyOneParticipant): \(onlyOneParticipant)
                                 """)
-                            }
+                        }
                         if let count = activeCall?.state.participantCount {
                             let data: [String: Any] = [
                                 "callId": response.callCid,
@@ -337,7 +339,7 @@ public class StreamCallPlugin: CAPPlugin, CAPBridgedPlugin {
                            let previousState = self.previousCallingState,
                            case .outgoing = previousState {
                             print("Call state changed from outgoing to idle. Ending call with ID: \(self.currentCallId)")
-                            
+
                             // End the call using the stored call ID and type
                             if !self.currentCallId.isEmpty {
                                 Task {
@@ -347,13 +349,13 @@ public class StreamCallPlugin: CAPPlugin, CAPBridgedPlugin {
                                         if components.count >= 2 {
                                             let callType = components[0]
                                             let callId = components[1]
-                                            
+
                                             // Try to get the call and end it using the parsed call type
                                             if let streamVideo = self.streamVideo {
                                                 let call = streamVideo.call(callType: callType, callId: callId)
                                                 try await call.end()
                                                 print("Successfully ended outgoing call: \(callId) with type: \(callType)")
-                                              
+
                                                 let data: [String: Any] = [
                                                     "callId": call.cId,
                                                     "state": "outgoing_call_ended"
@@ -367,7 +369,7 @@ public class StreamCallPlugin: CAPPlugin, CAPBridgedPlugin {
                                     } catch {
                                         print("Error ending outgoing call \(self.currentCallId): \(error)")
                                     }
-                                    
+
                                     // Clean up stored call information
                                     DispatchQueue.main.async {
                                         self.currentCallId = ""
@@ -394,8 +396,6 @@ public class StreamCallPlugin: CAPPlugin, CAPBridgedPlugin {
                                 self.hasNotifiedCallJoined = true
                             }
 
-
-
                         } else if case .incoming(let incomingCall) = newState {
                             self.updateCallStatusAndNotify(callId: incomingCall.id, state: "ringing")
                             //                            }
@@ -415,12 +415,12 @@ public class StreamCallPlugin: CAPPlugin, CAPBridgedPlugin {
 
                                 // Remove the call overlay view and touch intercept view when not in a call
                                 self.ensureViewRemoved()
-                              
+
                             } else {
                                 print("Not sending left event - CurrentCallId: \(self.currentCallId), ActiveCall exists: \(self.streamVideo?.state.activeCall != nil)")
                             }
                         }
-                        
+
                         // Update the previous state for next comparison
                         self.previousCallingState = newState
                     } catch {
@@ -596,64 +596,61 @@ public class StreamCallPlugin: CAPPlugin, CAPBridgedPlugin {
         }
     }
 
-
-
     @objc func joinCall(_ call: CAPPluginCall) {
-      guard let callId = call.getString("callId") else {
-          call.reject("Missing required parameter: callId")
-          return
-      }
+        guard let callId = call.getString("callId") else {
+            call.reject("Missing required parameter: callId")
+            return
+        }
 
-      guard let callType = call.getString("callType") else {
-          call.reject("Missing required parameter: callType")
-          return
-      }
+        guard let callType = call.getString("callType") else {
+            call.reject("Missing required parameter: callType")
+            return
+        }
 
-      // Initialize if needed
-      if state == .notInitialized {
-          initializeStreamVideo()
-          if state != .initialized {
-              call.reject("Failed to initialize StreamVideo")
-              return
-          }
-      }
+        // Initialize if needed
+        if state == .notInitialized {
+            initializeStreamVideo()
+            if state != .initialized {
+                call.reject("Failed to initialize StreamVideo")
+                return
+            }
+        }
 
-      do {
-          try requireInitialized()
+        do {
+            try requireInitialized()
 
+            Task {
+                do {
+                    print("Joining call:")
+                    print("- Call ID: \(callId)")
+                    print("- Call Type: \(callType)")
 
-          Task {
-              do {
-                  print("Joining call:")
-                  print("- Call ID: \(callId)")
-                  print("- Call Type: \(callType)")
+                    // Create the call object
+                    await self.callViewModel?.joinCall(
+                        callType: callType,
+                        callId: callId
+                    )
 
-                  // Create the call object
-                  await self.callViewModel?.joinCall(
-                      callType: callType,
-                      callId: callId
-                  )
+                    // Now send the created event with complete member data
+                    self.updateCallStatusAndNotify(callId: callId, state: "joined")
 
-                  // Now send the created event with complete member data
-                  self.updateCallStatusAndNotify(callId: callId, state: "joined")
+                    // Update UI on main thread
+                    await MainActor.run {
+                        // self.overlayViewModel?.updateCall(streamCall)
+                        self.overlayView?.isHidden = false
+                        self.webView?.isOpaque = false
+                    }
 
-                  // Update UI on main thread
-                  await MainActor.run {
-                      // self.overlayViewModel?.updateCall(streamCall)
-                      self.overlayView?.isHidden = false
-                      self.webView?.isOpaque = false
-                  }
+                    call.resolve([
+                        "success": true
+                    ])
 
-                  call.resolve([
-                      "success": true
-                  ])
-
-              }
-          }
-      } catch {
-          call.reject("StreamVideo not initialized")
-      }
-  }
+                }
+            }
+        } catch {
+            call.reject("StreamVideo not initialized")
+        }
+    }
 
     @objc func call(_ call: CAPPluginCall) {
         guard let members = call.getArray("userIds", String.self) else {
@@ -841,7 +838,7 @@ public class StreamCallPlugin: CAPPlugin, CAPBridgedPlugin {
                         let isCreator = createdBy == currentUserId
 
                         // Use call.state.participants.count to get participant count (as per StreamVideo iOS SDK docs)
-//                        let totalParticipants = await streamCall.state.participants.count
+                        //                        let totalParticipants = await streamCall.state.participants.count
                         let forceEnd = await (activeCall?.state.custom["type"]?.stringValue == "direct")
                         let shouldEnd = isCreator || forceEnd
 
@@ -1173,7 +1170,7 @@ public class StreamCallPlugin: CAPPlugin, CAPBridgedPlugin {
             }
         )
 
-        if (self.callViewModel == nil) {
+        if self.callViewModel == nil {
             // Initialize on main thread with proper MainActor isolation
             DispatchQueue.main.async {
                 Task { @MainActor in
@@ -1195,7 +1192,7 @@ public class StreamCallPlugin: CAPPlugin, CAPBridgedPlugin {
         callKitAdapter.registerForIncomingCalls()
     }
 
-        private func setupViews() {
+    private func setupViews() {
         guard let webView = self.webView, let parent = webView.superview else { return }
 
         // Create SwiftUI view with view model if not already created
@@ -1451,7 +1448,7 @@ public class StreamCallPlugin: CAPPlugin, CAPBridgedPlugin {
 
         call.resolve(result)
     }
-    
+
     func getCallInfo(callId: String, activeCall: Call) async -> [String: Any] {
         do {
             let customRaw = await MainActor.run { activeCall.state.custom }
@@ -1477,23 +1474,21 @@ public class StreamCallPlugin: CAPPlugin, CAPBridgedPlugin {
         }
     }
 
-
     @objc func enableBluetooth(call: CAPPluginCall) {
-      Task {
-          do {
+        Task {
+            do {
 
-              let policy = DefaultAudioSessionPolicy()
-              try await self.callViewModel?.call?.updateAudioSessionPolicy(policy)
-              call.resolve([
-                  "success": true
-              ])
-          } catch {
-              print("Failed to update policy: \(error)")
-            call.reject("Unable to set bluetooth policy")
-          }
-      }
+                let policy = DefaultAudioSessionPolicy()
+                try await self.callViewModel?.call?.updateAudioSessionPolicy(policy)
+                call.resolve([
+                    "success": true
+                ])
+            } catch {
+                print("Failed to update policy: \(error)")
+                call.reject("Unable to set bluetooth policy")
+            }
+        }
     }
-
 
     @objc func setSpeaker(_ call: CAPPluginCall) {
         guard let name = call.getString("name") else {
@@ -1633,6 +1628,10 @@ public class StreamCallPlugin: CAPPlugin, CAPBridgedPlugin {
             print("StreamCallPlugin: getCurrentUser: Failed to get current user - \(error)")
             call.reject("Failed to get current user: \(error.localizedDescription)")
         }
+    }
+
+    @objc func getPluginVersion(_ call: CAPPluginCall) {
+        call.resolve(["version": self.PLUGIN_VERSION])
     }
 
 }

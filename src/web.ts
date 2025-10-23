@@ -867,4 +867,8 @@ export class StreamCallWeb extends WebPlugin implements StreamCallPlugin {
       };
     }
   }
+
+  async getPluginVersion(): Promise<{ version: string }> {
+    return { version: 'web' };
+  }
 }

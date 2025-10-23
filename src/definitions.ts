@@ -261,7 +261,6 @@ export interface StreamCallPlugin {
    */
   endCall(): Promise<SuccessResponse>;
 
-
   /**
    * Join an existing call
    * @param {{  callId: string, callType: string  }} options - Microphone state
@@ -269,8 +268,7 @@ export interface StreamCallPlugin {
    * @example
    * await StreamCall.joinCall({ callId: 'call001', callType: 'default' });
    */
-  joinCall?(options: { callId: string, callType: string }): Promise<SuccessResponse>;
-
+  joinCall?(options: { callId: string; callType: string }): Promise<SuccessResponse>;
 
   /**
    * Enable or disable microphone
@@ -373,7 +371,6 @@ export interface StreamCallPlugin {
    */
   getRingingCall?(): Promise<CallEvent>;
 
-
   /**
    * Cycle through the available video layouts
    * @returns {Promise<{ newLayout: StreamCallLayout }>} The layout that is now active
@@ -465,4 +462,12 @@ export interface IncomingCallPayload {
     | boolean[]
     | number[]
   >;
+
+  /**
+   * Get the native Capacitor plugin version
+   *
+   * @returns {Promise<{ id: string }>} an Promise with version for this device
+   * @throws An error if the something went wrong
+   */
+  getPluginVersion(): Promise<{ version: string }>;
 }
