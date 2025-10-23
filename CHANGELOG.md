@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## [7.4.0](https://github.com/Cap-go/capacitor-streamcall/compare/7.3.0...7.4.0) (2025-10-23)
+
+
+### Features
+
+* Add plugin version retrieval and update workflows for changelog and Discord notifications ([a422f8e](https://github.com/Cap-go/capacitor-streamcall/commit/a422f8e955a20f2e9b79e2f872b24134319987ed))
+
+
+### Bug Fixes
+
+* Remove unnecessary content field from Discord release notification ([3c16dcd](https://github.com/Cap-go/capacitor-streamcall/commit/3c16dcda6d045cd0eb796340ac6cbddeaabf6461))
+
 ## [7.3.0](https://github.com/Cap-go/capacitor-streamcall/compare/7.2.1...7.3.0) (2025-10-22)
 
 
