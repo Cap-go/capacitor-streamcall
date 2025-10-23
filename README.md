@@ -880,6 +880,10 @@ The JSON representation for <a href="#listvalue">`ListValue`</a> is JSON array.
 | **`caller`** | <code><a href="#callmember">CallMember</a></code>                                                                                                                                                                         | Information about the caller             |
 | **`custom`** | <code><a href="#record">Record</a>&lt; string, \| string \| boolean \| number \| null \| <a href="#record">Record</a>&lt;string, string \| boolean \| number \| null&gt; \| string[] \| boolean[] \| number[] &gt;</code> | Custom data to be passed to the call     |
 
+| Method               | Signature                                    | Description                             |
+| -------------------- | -------------------------------------------- | --------------------------------------- |
+| **getPluginVersion** | () =&gt; Promise&lt;{ version: string; }&gt; | Get the native Capacitor plugin version |
+
 
 #### CameraEnabledResponse
 
