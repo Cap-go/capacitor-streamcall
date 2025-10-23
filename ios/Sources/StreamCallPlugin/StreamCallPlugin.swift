@@ -227,13 +227,6 @@ public class StreamCallPlugin: CAPPlugin, CAPBridgedPlugin {
                             "state": "rejected"
                         ]
                         notifyListeners("callEvent", data: data)
-                    case let .typeCallAcceptedEvent(response):
-                        if let streamUserId = self.streamVideo?.user.id,
-                           response.user.id == streamUserId,
-                           response.callCid != self.currentCallId {
-
-                            self.updateCallStatusAndNotify(callId: response.callCid, state: "joined")
-                        }
                     case let .typeCallEndedEvent(response):
                         let data: [String: Any] = [
                             "callId": response.callCid,
@@ -282,6 +275,13 @@ public class StreamCallPlugin: CAPPlugin, CAPBridgedPlugin {
                         // This ensures CallKit integration works properly
                         viewModel.setActiveCall(activeCall)
                         viewModel.update(participantsLayout: .grid)
+                      
+                        if let callId = viewModel.call?.cId, !self.hasNotifiedCallJoined || callId != self.currentCallId {
+                            print("Notifying call joined: \(callId)")
+                            self.updateCallStatusAndNotify(callId: callId, state: "joined")
+                            self.hasNotifiedCallJoined = true
+                        }
+                      
 
                         // Subscribe to speaker status for this active call
                         self.speakerSubscription = activeCall.speaker.$status
@@ -316,6 +316,17 @@ public class StreamCallPlugin: CAPPlugin, CAPBridgedPlugin {
                         print("Active call became nil, cleaning up speaker subscription")
                         self.speakerSubscription?.cancel()
                         self.speakerSubscription = nil
+                      
+                        print("Call actually ending: \(self.currentCallId)")
+
+                        // Notify that call has ended - use the stored call ID
+                        self.updateCallStatusAndNotify(callId: self.currentCallId, state: "left")
+
+                        // Reset notification flag when call ends
+                        self.hasNotifiedCallJoined = false
+
+                        // Remove the call overlay view and touch intercept view when not in a call
+                        self.ensureViewRemoved()
                     }
                 }
 
@@ -399,28 +410,7 @@ public class StreamCallPlugin: CAPPlugin, CAPBridgedPlugin {
                         } else if case .incoming(let incomingCall) = newState {
                             self.updateCallStatusAndNotify(callId: incomingCall.id, state: "ringing")
                             //                            }
-                        } else if newState == .idle {
-                            print("Call state changed to idle. CurrentCallId: \(self.currentCallId), ActiveCall: \(String(describing: self.streamVideo?.state.activeCall?.cId))")
-
-                            // Only notify about call ending if we have a valid stored call ID and there's truly no active call
-                            // This prevents false "left" events during normal state transitions
-                            if !self.currentCallId.isEmpty && self.streamVideo?.state.activeCall == nil {
-                                print("Call actually ending: \(self.currentCallId)")
-
-                                // Notify that call has ended - use the stored call ID
-                                self.updateCallStatusAndNotify(callId: self.currentCallId, state: "left")
-
-                                // Reset notification flag when call ends
-                                self.hasNotifiedCallJoined = false
-
-                                // Remove the call overlay view and touch intercept view when not in a call
-                                self.ensureViewRemoved()
-
-                            } else {
-                                print("Not sending left event - CurrentCallId: \(self.currentCallId), ActiveCall exists: \(self.streamVideo?.state.activeCall != nil)")
-                            }
                         }
-
                         // Update the previous state for next comparison
                         self.previousCallingState = newState
                     } catch {
