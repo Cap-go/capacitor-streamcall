@@ -259,6 +259,7 @@ export class CallService {
 * [`setDynamicStreamVideoApikey(...)`](#setdynamicstreamvideoapikey)
 * [`getDynamicStreamVideoApikey()`](#getdynamicstreamvideoapikey)
 * [`getCurrentUser()`](#getcurrentuser)
+* [`getPluginVersion()`](#getpluginversion)
 * [Interfaces](#interfaces)
 * [Type Aliases](#type-aliases)
 * [Enums](#enums)
@@ -608,6 +609,19 @@ getCurrentUser() => Promise<CurrentUserResponse>
 Get the current user's information
 
 **Returns:** <code>Promise&lt;<a href="#currentuserresponse">CurrentUserResponse</a>&gt;</code>
+
+--------------------
+
+
+### getPluginVersion()
+
+```typescript
+getPluginVersion() => Promise<{ version: string; }>
+```
+
+Get the native Capacitor plugin version
+
+**Returns:** <code>Promise&lt;{ version: string; }&gt;</code>
 
 --------------------
 
