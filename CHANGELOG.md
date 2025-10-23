@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## [7.6.0](https://github.com/Cap-go/capacitor-streamcall/compare/7.5.0...7.6.0) (2025-10-23)
+
+
+### Features
+
+* add getPluginVersion method to CallService documentation ([516bdd9](https://github.com/Cap-go/capacitor-streamcall/commit/516bdd9f4eee422552f21532698312ca3d4f5cfb))
+
 ## [7.5.0](https://github.com/Cap-go/capacitor-streamcall/compare/7.4.0...7.5.0) (2025-10-23)
 
 
