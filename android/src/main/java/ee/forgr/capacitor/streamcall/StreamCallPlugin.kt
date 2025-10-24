@@ -266,6 +266,7 @@ class StreamCallPlugin : Plugin() {
     if (action === "io.getstream.video.android.action.INCOMING_CALL") {
       Log.d("StreamCallPlugin", "handleOnNewIntent: Matched INCOMING_CALL action")
       // We need to make sure the activity is visible on locked screen in such case
+      bringAppToForeground()
       changeActivityAsVisibleOnLockScreen(this@StreamCallPlugin.activity, true)
       activity?.runOnUiThread {
         val cid = intent.streamCallId(NotificationHandler.INTENT_EXTRA_CALL_CID)
@@ -275,6 +276,12 @@ class StreamCallPlugin : Plugin() {
           Log.d("StreamCallPlugin", "handleOnNewIntent: INCOMING_CALL - cid is not null, processing.")
           val call = streamVideoClient?.call(id = cid.id, type = cid.type)
           Log.d("StreamCallPlugin", "handleOnNewIntent: INCOMING_CALL - Got call object: ${call?.id}")
+
+          val preview = JSObject().apply {
+            put("cid", cid.cid)
+            put("type", "incoming")
+          }
+          notifyListeners("incomingCall", preview, true)
 
           // Try to get caller information from the call
           kotlinx.coroutines.GlobalScope.launch {
@@ -302,9 +309,6 @@ class StreamCallPlugin : Plugin() {
 
               // Notify WebView/JS about incoming call so it can render its own UI
               notifyListeners("incomingCall", payload, true)
-              // Delay bringing app to foreground to allow the event to be processed first
-              kotlinx.coroutines.delay(500) // 500ms delay
-              bringAppToForeground()
             } catch (e: Exception) {
               Log.e("StreamCallPlugin", "Error getting call info for incoming call", e)
               // Fallback to basic payload without caller info
@@ -314,9 +318,6 @@ class StreamCallPlugin : Plugin() {
               }
               notifyListeners("incomingCall", payload, true)
               ringingCallId = cid.cid;
-              // Delay bringing app to foreground to allow the event to be processed first
-              kotlinx.coroutines.delay(500) // 500ms delay
-              bringAppToForeground()
             }
           }
         } else {
