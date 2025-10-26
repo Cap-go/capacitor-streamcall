@@ -12,7 +12,7 @@ import WebKit
  */
 @objc(StreamCallPlugin)
 public class StreamCallPlugin: CAPPlugin, CAPBridgedPlugin {
-    private let PLUGIN_VERSION: String = "7.7.1"
+    private let PLUGIN_VERSION: String = "7.7.2"
     public let identifier = "StreamCallPlugin"
     public let jsName = "StreamCall"
     public let pluginMethods: [CAPPluginMethod] = [
