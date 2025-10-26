@@ -8,6 +8,10 @@
 
 A Capacitor plugin that uses the [Stream Video SDK](https://getstream.io/) to enable video calling functionality in your app.
 
+## Documentation
+
+The most complete doc is available here: https://capgo.app/docs/plugins/streamcall/
+
 ## Installation
 
 ```bash
