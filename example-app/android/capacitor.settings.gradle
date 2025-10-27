@@ -3,19 +3,16 @@ include ':capacitor-android'
 project(':capacitor-android').projectDir = new File('../../node_modules/@capacitor/android/capacitor')
 
 include ':capacitor-app'
-project(':capacitor-app').projectDir = new File('../node_modules/@capacitor/app/android')
+project(':capacitor-app').projectDir = new File('../node_modules/.bun/@capacitor+app@7.0.0+ba62c5d2d5256833/node_modules/@capacitor/app/android')
 
 include ':capacitor-haptics'
-project(':capacitor-haptics').projectDir = new File('../node_modules/@capacitor/haptics/android')
+project(':capacitor-haptics').projectDir = new File('../node_modules/.bun/@capacitor+haptics@7.0.2+ba62c5d2d5256833/node_modules/@capacitor/haptics/android')
 
 include ':capacitor-keyboard'
-project(':capacitor-keyboard').projectDir = new File('../node_modules/@capacitor/keyboard/android')
+project(':capacitor-keyboard').projectDir = new File('../node_modules/.bun/@capacitor+keyboard@7.0.3+ba62c5d2d5256833/node_modules/@capacitor/keyboard/android')
 
 include ':capacitor-status-bar'
-project(':capacitor-status-bar').projectDir = new File('../node_modules/@capacitor/status-bar/android')
-
-include ':capawesome-capacitor-android-edge-to-edge-support'
-project(':capawesome-capacitor-android-edge-to-edge-support').projectDir = new File('../node_modules/@capawesome/capacitor-android-edge-to-edge-support/android')
+project(':capacitor-status-bar').projectDir = new File('../node_modules/.bun/@capacitor+status-bar@7.0.3+ba62c5d2d5256833/node_modules/@capacitor/status-bar/android')
 
 include ':capgo-capacitor-stream-call'
-project(':capgo-capacitor-stream-call').projectDir = new File('../../android')
+project(':capgo-capacitor-stream-call').projectDir = new File('../node_modules/.bun/@capgo+capacitor-stream-call@file+../node_modules/@capgo/capacitor-stream-call/android')

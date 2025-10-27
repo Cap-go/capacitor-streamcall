@@ -17,7 +17,6 @@
         "@capacitor/haptics": "7.0.2",
         "@capacitor/keyboard": "^7.0.0",
         "@capacitor/status-bar": "7.0.3",
-        "@capawesome/capacitor-android-edge-to-edge-support": "^7.2.2",
         "@capgo/capacitor-stream-call": "../",
         "@ionic/angular": "^8.0.0",
         "ionicons": "^7.0.0",
@@ -305,8 +304,6 @@
     "@capacitor/keyboard": ["@capacitor/keyboard@7.0.3", "", { "peerDependencies": { "@capacitor/core": ">=7.0.0" } }, "sha512-BIBKjmky5rOYNhvYhNeDi0MMvjwYZ6YF9JoCYcGKvKY+XLJKtezsEL78XfOlgWZBkbfR8uq3tzktY6PqgoYLKA=="],
 
     "@capacitor/status-bar": ["@capacitor/status-bar@7.0.3", "", { "peerDependencies": { "@capacitor/core": ">=7.0.0" } }, "sha512-JyRpVnKwHij9hgPWolF6PK+HT3e2HSPjN11/h2OmKxq8GAdPGARFLv+97eZl0pvuvm0Kka/LpiLb5whXISBg7Q=="],
-
-    "@capawesome/capacitor-android-edge-to-edge-support": ["@capawesome/capacitor-android-edge-to-edge-support@7.2.3", "", { "peerDependencies": { "@capacitor/core": ">=7.0.0" } }, "sha512-WtwXeU5Clg13t3SO6JvtIfJlpO+E48tHC+vNmC519zcS6GV9URl705UOvwOOvEyh6GFxAi2dHi8lj8iqIOYCdA=="],
 
     "@capgo/capacitor-stream-call": ["@capgo/capacitor-stream-call@file:..", { "dependencies": { "@stream-io/audio-filters-web": "^0.2.2", "@stream-io/video-client": "1.16.7" }, "devDependencies": { "@capacitor/android": "^7.0.0", "@capacitor/core": "^7.0.0", "@capacitor/docgen": "^0.3.0", "@capacitor/ios": "^7.0.0", "@ionic/eslint-config": "^0.4.0", "@ionic/prettier-config": "^4.0.0", "@ionic/swiftlint-config": "^2.0.0", "eslint": "^8.57.0", "prettier": "^3.5.0", "prettier-plugin-java": "^2.6.7", "rimraf": "^6.0.1", "rollup": "^4.34.6", "swiftlint": "^2.0.0", "typescript": "^5.7.3" }, "peerDependencies": { "@capacitor/core": ">=7.0.0" } }],
 
