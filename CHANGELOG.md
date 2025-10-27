@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## [7.7.3](https://github.com/Cap-go/capacitor-streamcall/compare/7.7.2...7.7.3) (2025-10-27)
+
+
+### Bug Fixes
+
+* remove old edge to egde ([76f2db7](https://github.com/Cap-go/capacitor-streamcall/commit/76f2db791382c1051e49f2f30596b86d256af583))
+* renovate capacitor dep ([51a73ad](https://github.com/Cap-go/capacitor-streamcall/commit/51a73adfed5ec0a8d4e11ede69a05e9dc280e61f))
+
 ## [7.7.2](https://github.com/Cap-go/capacitor-streamcall/compare/7.7.1...7.7.2) (2025-10-26)
 
 
