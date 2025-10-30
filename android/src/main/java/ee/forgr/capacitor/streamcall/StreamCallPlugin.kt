@@ -107,7 +107,7 @@ import kotlinx.coroutines.flow.collectLatest
 // It's a spaghetti-like, tangled, unreadable mess and frankly, I am deeply sorry for the code crimes commited in the Android impl
 @CapacitorPlugin(name = "StreamCall")
 class StreamCallPlugin : Plugin() {
-  private val PLUGIN_VERSION = "7.7.4"
+  private val pluginVersion = "7.7.4"
   private var streamVideoClient: StreamVideo? = null
   private var state: State = State.NOT_INITIALIZED
   private var overlayView: ComposeView? = null
@@ -3262,7 +3262,7 @@ class StreamCallPlugin : Plugin() {
   fun getPluginVersion(call: PluginCall) {
     try {
       val ret = JSObject()
-      ret.put("version", PLUGIN_VERSION)
+      ret.put("version", pluginVersion)
       call.resolve(ret)
     } catch (e: Exception) {
       call.reject("Could not get plugin version", e)
