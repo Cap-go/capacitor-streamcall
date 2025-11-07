@@ -77,8 +77,8 @@ dependencies {
 
     
     // Stream dependencies
-    implementation("io.getstream:stream-video-android-ui-compose:1.14.0")
-    implementation("io.getstream:stream-video-android-core:1.14.0")
+    implementation("io.getstream:stream-video-android-ui-compose:1.16.0")
+    implementation("io.getstream:stream-video-android-core:1.16.0")
     implementation("io.getstream:stream-android-push:1.3.2")
     implementation("io.getstream:stream-android-push-firebase:1.3.2")
     

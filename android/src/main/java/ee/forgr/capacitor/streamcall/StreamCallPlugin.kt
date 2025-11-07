@@ -1371,8 +1371,6 @@ class StreamCallPlugin : Plugin() {
             updateCallStatusAndNotify(call.cid, "joined")
             CallUIController.layoutType.value = LayoutType.GRID
             ringingCallId = ""
-            // Make sure activity is visible on lock screen
-//            changeActivityAsVisibleOnLockScreen(this@StreamCallPlugin.activity, true)
 
             cameraStatusJob?.cancel()
             microphoneStatusJob?.cancel()
