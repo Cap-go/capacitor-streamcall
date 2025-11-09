@@ -68,6 +68,8 @@ public class StreamCallPlugin: CAPPlugin, CAPBridgedPlugin {
 
     @Injected(\.callKitAdapter) var callKitAdapter
     @Injected(\.callKitPushNotificationAdapter) var callKitPushNotificationAdapter
+    @Injected(\.utils) var utils
+
     private var webviewDelegate: WebviewNavigationDelegate?
 
     // Declare as optional and initialize in load() method
@@ -340,6 +342,9 @@ public class StreamCallPlugin: CAPPlugin, CAPBridgedPlugin {
                            case .outgoing = previousState {
                             print("Call state changed from outgoing to idle. Ending call with ID: \(self.currentCallId)")
 
+                            // Stop ongoing sound when call is cancelled
+                            self.utils.callSoundsPlayer.stopOngoingSound()
+
                             // End the call using the stored call ID and type
                             if !self.currentCallId.isEmpty {
                                 Task {
@@ -388,6 +393,11 @@ public class StreamCallPlugin: CAPPlugin, CAPBridgedPlugin {
 
                             // Create/update overlay and make visible when there's an active call
                             self.createCallOverlayView()
+
+
+                            // Stop ongoing sound when call is joined
+                            self.utils.callSoundsPlayer.stopOngoingSound()
+
 
                             // Notify that a call has started - but only if we haven't notified for this call yet
                             if let callId = viewModel.call?.cId, !self.hasNotifiedCallJoined || callId != self.currentCallId {
@@ -692,6 +702,8 @@ public class StreamCallPlugin: CAPPlugin, CAPBridgedPlugin {
                     print("- Users: \(members)")
                     print("- Should Ring: \(shouldRing)")
                     print("- Team: \(String(describing: team))")
+                    // Play outgoing call sound
+                    self.utils.callSoundsPlayer.playOutgoingCallSound()
 
                     // Create the call object
                     await self.callViewModel?.startCall(
@@ -821,6 +833,9 @@ public class StreamCallPlugin: CAPPlugin, CAPBridgedPlugin {
     }
 
     private func endCallInternal() {
+        // Stop ongoing sound when call ends
+        self.utils.callSoundsPlayer.stopOngoingSound()
+        
         do {
             try requireInitialized()
 
@@ -905,6 +920,9 @@ public class StreamCallPlugin: CAPPlugin, CAPBridgedPlugin {
     }
 
     @objc func endCall(_ call: CAPPluginCall) {
+        // Stop ongoing sound when call ends
+        self.utils.callSoundsPlayer.stopOngoingSound()
+        
         do {
             try requireInitialized()
 
