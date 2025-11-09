@@ -277,13 +277,12 @@ public class StreamCallPlugin: CAPPlugin, CAPBridgedPlugin {
                         // This ensures CallKit integration works properly
                         viewModel.setActiveCall(activeCall)
                         viewModel.update(participantsLayout: .grid)
-                      
+
                         if let callId = viewModel.call?.cId, !self.hasNotifiedCallJoined || callId != self.currentCallId {
                             print("Notifying call joined: \(callId)")
                             self.updateCallStatusAndNotify(callId: callId, state: "joined")
                             self.hasNotifiedCallJoined = true
                         }
-                      
 
                         // Subscribe to speaker status for this active call
                         self.speakerSubscription = activeCall.speaker.$status
@@ -318,7 +317,7 @@ public class StreamCallPlugin: CAPPlugin, CAPBridgedPlugin {
                         print("Active call became nil, cleaning up speaker subscription")
                         self.speakerSubscription?.cancel()
                         self.speakerSubscription = nil
-                      
+
                         print("Call actually ending: \(self.currentCallId)")
 
                         // Notify that call has ended - use the stored call ID
@@ -405,10 +404,8 @@ public class StreamCallPlugin: CAPPlugin, CAPBridgedPlugin {
                             // Create/update overlay and make visible when there's an active call
                             self.createCallOverlayView()
 
-
                             // Stop ongoing sound when call is joined
                             self.utils.callSoundsPlayer.stopOngoingSound()
-
 
                             // Notify that a call has started - but only if we haven't notified for this call yet
                             if let callId = viewModel.call?.cId, !self.hasNotifiedCallJoined || callId != self.currentCallId {
@@ -825,7 +822,7 @@ public class StreamCallPlugin: CAPPlugin, CAPBridgedPlugin {
     private func endCallInternal() {
         // Stop ongoing sound when call ends
         self.utils.callSoundsPlayer.stopOngoingSound()
-        
+
         do {
             try requireInitialized()
 
@@ -912,7 +909,7 @@ public class StreamCallPlugin: CAPPlugin, CAPBridgedPlugin {
     @objc func endCall(_ call: CAPPluginCall) {
         // Stop ongoing sound when call ends
         self.utils.callSoundsPlayer.stopOngoingSound()
-        
+
         do {
             try requireInitialized()
 
