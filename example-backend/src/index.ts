@@ -32,7 +32,7 @@ const apiKey = process.env.STREAM_API_KEY;
 const apiKeyDev = process.env.STREAM_API_KEY_DEV;
 const apiSecret = process.env.STREAM_API_SECRET;
 const apiSecretDev = process.env.STREAM_API_SECRET_DEV;
-const vailidity = 60 * 60 * 6; // Six hours in seconds
+const validity = 60 * 60 * 6; // Six hours in seconds
 const client = new StreamClient(apiKey, apiSecret, {
   timeout: 10000,
 });
@@ -67,7 +67,7 @@ app.get('/user', async (c) => {
     console.log('upsertUsers', newUser);
     const clientToUse = environment === 'dev' ? devClient : client;
     await clientToUse.upsertUsers([newUser]);
-    const token = clientToUse.generateUserToken({ user_id: userId, validity_in_seconds: vailidity });
+    const token = clientToUse.generateUserToken({ user_id: userId, validity_in_seconds: validity });
 
     console.log('token', token);
     return c.json({

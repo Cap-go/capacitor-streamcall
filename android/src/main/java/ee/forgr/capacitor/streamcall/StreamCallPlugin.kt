@@ -104,7 +104,7 @@ import io.getstream.video.android.model.StreamCallId
 import kotlinx.coroutines.flow.collectLatest
 
 // I am not a religious pearson, but at this point, I am not sure even god himself would understand this code
-// It's a spaghetti-like, tangled, unreadable mess and frankly, I am deeply sorry for the code crimes commited in the Android impl
+// It's a spaghetti-like, tangled, unreadable mess and frankly, I am deeply sorry for the code crimes committed in the Android impl
 @CapacitorPlugin(name = "StreamCall")
 class StreamCallPlugin : Plugin() {
   private val pluginVersion = "7.7.4"
@@ -1443,7 +1443,7 @@ class StreamCallPlugin : Plugin() {
   private fun registerActivityEventListener(application: Application) {
     Log.i("StreamCallPlugin", "Registering activity event listener")
     application.registerActivityLifecycleCallbacks(object: ActivityLifecycleCallbacks() {
-      override fun onActivityCreated(activity: Activity, bunlde: Bundle?) {
+      override fun onActivityCreated(activity: Activity, bundle: Bundle?) {
         Log.d("StreamCallPlugin", "onActivityCreated called")
         savedContext?.let {
           if (this@StreamCallPlugin.savedActivity != null && activity is BridgeActivity) {
@@ -1468,7 +1468,7 @@ class StreamCallPlugin : Plugin() {
             this@StreamCallPlugin.savedActivity = activity
           }
         }
-        super.onActivityCreated(activity, bunlde)
+        super.onActivityCreated(activity, bundle)
       }
 
       override fun onActivityPaused(activity: Activity) {
