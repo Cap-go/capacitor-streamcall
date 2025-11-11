@@ -876,7 +876,7 @@ The JSON representation for <a href="#listvalue">`ListValue`</a> is JSON array.
 | Prop            | Type                | Description                                                         |
 | --------------- | ------------------- | ------------------------------------------------------------------- |
 | **`userId`**    | <code>string</code> | the user to pin                                                     |
-| **`sessionId`** | <code>string</code> | the user session_id to pin, if not provided, applies to all sessions |
+| **`sessionId`** | <code>string</code> | the user sesion_id to pin, if not provided, applies to all sessions |
 
 
 #### CallMember
@@ -940,9 +940,7 @@ The JSON representation for <a href="#listvalue">`ListValue`</a> is JSON array.
 
 Construct a type with a set of properties K of type T
 
-<code>{
- [P in K]: T;
- }</code>
+<code>{ [P in K]: T; }</code>
 
 
 #### CallState
