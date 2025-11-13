@@ -78,7 +78,9 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import io.getstream.video.android.core.sounds.RingingConfig
-import io.getstream.video.android.core.sounds.toSounds
+import io.getstream.video.android.core.sounds.MutedRingingConfig
+import io.getstream.video.android.core.sounds.Sounds
+import io.getstream.video.android.core.sounds.ringingConfig
 import io.getstream.video.android.core.sounds.enableRingingCallVibrationConfig
 import io.getstream.video.android.model.Device
 import io.getstream.video.android.model.User
@@ -163,11 +165,20 @@ class StreamCallPlugin : Plugin() {
     INITIALIZED
   }
 
-  fun incomingOnlyRingingConfig(packageName: String): RingingConfig = object : RingingConfig {
+  fun incomingOnlyRingingConfig(packageName: String): Sounds {
     val ringtoneUri = "android.resource://${packageName}/raw/outgoing".toUri()
-
-    override val incomingCallSoundUri: Uri? = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_RINGTONE)
-    override val outgoingCallSoundUri: Uri? = ringtoneUri
+    
+    val config = object : RingingConfig {
+      override val incomingCallSoundUri: Uri? = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_RINGTONE)
+      override val outgoingCallSoundUri: Uri? = ringtoneUri
+    }
+    
+    val mutedConfig = object : MutedRingingConfig {
+      override val playIncomingSoundIfMuted: Boolean = true
+      override val playOutgoingSoundIfMuted: Boolean = true
+    }
+    
+    return ringingConfig(config, mutedConfig)
   }
 
   private fun runOnMainThread(action: () -> Unit) {
@@ -864,7 +875,7 @@ class StreamCallPlugin : Plugin() {
         user = savedCredentials.user,
         token = savedCredentials.tokenValue,
         notificationConfig = notificationConfig,
-        sounds = soundsConfig.toSounds(),
+        sounds = soundsConfig,
         loggingLevel = LoggingLevel(priority = Priority.INFO),
         vibrationConfig = enableRingingCallVibrationConfig()
       ).build()
