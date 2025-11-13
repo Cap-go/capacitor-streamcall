@@ -174,7 +174,7 @@ class StreamCallPlugin : Plugin() {
     }
     
     val mutedConfig = object : MutedRingingConfig {
-      override val playIncomingSoundIfMuted: Boolean = true
+      override val playIncomingSoundIfMuted: Boolean = false
       override val playOutgoingSoundIfMuted: Boolean = true
     }
     
