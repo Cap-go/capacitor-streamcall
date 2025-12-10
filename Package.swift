@@ -3,14 +3,14 @@ import PackageDescription
 
 let package = Package(
     name: "StreamCall",
-    platforms: [.iOS(.v14)],
+    platforms: [.iOS(.v15)],
     products: [
         .library(
             name: "StreamCall",
             targets: ["StreamCallPlugin"])
     ],
     dependencies: [
-        .package(url: "https://github.com/ionic-team/capacitor-swift-pm.git", from: "7.0.0"),
+        .package(url: "https://github.com/ionic-team/capacitor-swift-pm.git", from: "8.0.0"),
         .package(url: "https://github.com/GetStream/stream-video-swift.git", exact: "1.34.2")
     ],
     targets: [
