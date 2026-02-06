@@ -2,11 +2,11 @@
 import PackageDescription
 
 let package = Package(
-    name: "StreamCall",
+    name: "CapgoCapacitorStreamCall",
     platforms: [.iOS(.v15)],
     products: [
         .library(
-            name: "StreamCall",
+            name: "CapgoCapacitorStreamCall",
             targets: ["StreamCallPlugin"])
     ],
     dependencies: [
