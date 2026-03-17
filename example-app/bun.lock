@@ -44,7 +44,7 @@
         "eslint-plugin-import": "^2.29.1",
         "eslint-plugin-jsdoc": "^48.2.1",
         "eslint-plugin-prefer-arrow": "1.2.3",
-        "jasmine-core": "~5.1.0",
+        "jasmine-core": "~5.13.0",
         "jasmine-spec-reporter": "~5.0.0",
         "karma": "~6.4.0",
         "karma-chrome-launcher": "~3.2.0",
@@ -1466,7 +1466,7 @@
 
     "jackspeak": ["jackspeak@4.1.1", "", { "dependencies": { "@isaacs/cliui": "^8.0.2" } }, "sha512-zptv57P3GpL+O0I7VdMJNBZCu+BPHVQUk55Ft8/QCJjTVxrnJHuVuX/0Bl2A6/+2oyR/ZMEuFKwmzqqZ/U5nPQ=="],
 
-    "jasmine-core": ["jasmine-core@5.1.2", "", {}, "sha512-2oIUMGn00FdUiqz6epiiJr7xcFyNYj3rDcfmnzfkBnHyBQ3cBQUs4mmyGsOb7TTLb9kxk7dBcmEmqhDKkBoDyA=="],
+    "jasmine-core": ["jasmine-core@5.13.0", "", {}, "sha512-vsYjfh7lyqvZX5QgqKc4YH8phs7g96Z8bsdIFNEU3VqXhlHaq+vov/Fgn/sr6MiUczdZkyXRC3TX369Ll4Nzbw=="],
 
     "jasmine-spec-reporter": ["jasmine-spec-reporter@5.0.2", "", { "dependencies": { "colors": "1.4.0" } }, "sha512-6gP1LbVgJ+d7PKksQBc2H0oDGNRQI3gKUsWlswKaQ2fif9X5gzhQcgM5+kiJGCQVurOG09jqNhk7payggyp5+g=="],
 
