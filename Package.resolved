@@ -14,8 +14,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/GetStream/stream-video-swift.git",
       "state" : {
-        "revision" : "f028d2be83930c3259650c6923e3dafdfacfbb09",
-        "version" : "1.44.0"
+        "revision" : "787436f257f6d5fe557d44bf2f4ba493d30abfae",
+        "version" : "1.45.0"
       }
     },
     {
