@@ -26,6 +26,10 @@ import android.view.WindowManager
 import android.widget.FrameLayout
 import java.lang.ref.WeakReference
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.windowInsetsPadding
+import androidx.compose.foundation.layout.navigationBars
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.Box
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
@@ -616,50 +620,52 @@ class StreamCallPlugin : Plugin() {
 
           val currentLocal by activeCall.state.me.collectAsStateWithLifecycle()
 
-          CallContent(
-            call = activeCall,
-            enableInPictureInPicture = false,
-            onBackPressed = {},
-            controlsContent = { /* Empty to disable native controls */ },
-            appBarContent = { /* Empty to disable app bar with stop call button */ },
-            layout = CallUIController.layoutType.value,
-            videoRenderer = { videoModifier, videoCall, videoParticipant, videoStyle ->
-              ParticipantVideo(
-                modifier = videoModifier,
-                call = videoCall,
-                participant = videoParticipant,
-                style = videoStyle,
-                actionsContent = {_, _, _ -> {}},
-                scalingType = if (CallUIController.layoutType.value == LayoutType.GRID) {
-                  VideoScalingType.SCALE_ASPECT_FIT
-                } else {
-                  VideoScalingType.SCALE_ASPECT_FILL
-                }
-              )
-            },
-            floatingVideoRenderer = { call, parentSize ->
-              currentLocal?.let {
-                FloatingParticipantVideo(
-                  call = call,
-                  participant = currentLocal!!,
-                  style = RegularVideoRendererStyle().copy(isShowingConnectionQualityIndicator = false),
-                  parentBounds = parentSize,
-                  videoRenderer = { _ ->
-                    ParticipantVideo(
-                      modifier = Modifier
-                        .fillMaxSize()
-                        .clip(VideoTheme.shapes.dialog),
-                      call = call,
-                      participant = it,
-                      style = RegularVideoRendererStyle().copy(isShowingConnectionQualityIndicator = false),
-                      actionsContent = {_, _, _ -> {}},
-                    )
+          Box(modifier = Modifier.windowInsetsPadding(WindowInsets.navigationBars)) {
+            CallContent(
+              call = activeCall,
+              enableInPictureInPicture = false,
+              onBackPressed = {},
+              controlsContent = { /* Empty to disable native controls */ },
+              appBarContent = { /* Empty to disable app bar with stop call button */ },
+              layout = CallUIController.layoutType.value,
+              videoRenderer = { videoModifier, videoCall, videoParticipant, videoStyle ->
+                ParticipantVideo(
+                  modifier = videoModifier,
+                  call = videoCall,
+                  participant = videoParticipant,
+                  style = videoStyle,
+                  actionsContent = {_, _, _ -> {}},
+                  scalingType = if (CallUIController.layoutType.value == LayoutType.GRID) {
+                    VideoScalingType.SCALE_ASPECT_FIT
+                  } else {
+                    VideoScalingType.SCALE_ASPECT_FILL
                   }
                 )
-              }
+              },
+              floatingVideoRenderer = { call, parentSize ->
+                currentLocal?.let {
+                  FloatingParticipantVideo(
+                    call = call,
+                    participant = currentLocal!!,
+                    style = RegularVideoRendererStyle().copy(isShowingConnectionQualityIndicator = false),
+                    parentBounds = parentSize,
+                    videoRenderer = { _ ->
+                      ParticipantVideo(
+                        modifier = Modifier
+                          .fillMaxSize()
+                          .clip(VideoTheme.shapes.dialog),
+                        call = call,
+                        participant = it,
+                        style = RegularVideoRendererStyle().copy(isShowingConnectionQualityIndicator = false),
+                        actionsContent = {_, _, _ -> {}},
+                      )
+                    }
+                  )
+                }
 
-            }
-          )
+              }
+            )
+          }
         }
       }
     }
