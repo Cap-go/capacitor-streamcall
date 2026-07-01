@@ -38,6 +38,13 @@ bun remove "$plugin_name"
 bun add "${packed_packages[0]}"
 bun run build
 
+if [ -d android ] && [ ! -d node_modules/@capacitor/android ]; then
+  bun add -d @capacitor/android
+fi
+if [ -d ios ] && [ ! -d node_modules/@capacitor/ios ]; then
+  bun add -d @capacitor/ios
+fi
+
 case "$platform" in
   android)
     if [ ! -d android ]; then
