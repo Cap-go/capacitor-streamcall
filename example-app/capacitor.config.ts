@@ -2,7 +2,7 @@ import type { CapacitorConfig } from '@capacitor/cli';
 
 const config: CapacitorConfig = {
   appId: 'app.capgo.streamcall',
-  appName: 'Streamcall Example',
+  appName: '@capgo/capacitor-stream-call',
   webDir: 'www',
   android: {
     adjustMarginsForEdgeToEdge: 'auto',
