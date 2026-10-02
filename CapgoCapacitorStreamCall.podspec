@@ -13,7 +13,7 @@ Pod::Spec.new do |s|
   s.source_files = 'ios/Sources/**/*.{swift,h,m,c,cc,mm,cpp}'
   s.ios.deployment_target = '15.0'
   s.dependency 'Capacitor'
-  s.dependency 'StreamVideo', '1.34.1'
-  s.dependency 'StreamVideoSwiftUI', '1.34.1'
+  s.dependency 'StreamVideo', '~> 1.53'
+  s.dependency 'StreamVideoSwiftUI', '~> 1.53'
   s.swift_version = '5.1'
 end
