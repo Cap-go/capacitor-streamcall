@@ -5,6 +5,7 @@ def capacitor_pods
   use_frameworks!
   pod 'Capacitor', :path => '../node_modules/@capacitor/ios'
   pod 'CapacitorCordova', :path => '../node_modules/@capacitor/ios'
+  # Stream 1.52+ (Xcode 27) is SPM-only; ~> 1.49 is the latest range resolvable from CocoaPods trunk.
   pod 'StreamVideo', '~> 1.49'
   pod 'StreamVideoSwiftUI', '~> 1.49'
 
