@@ -5,8 +5,17 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/ionic-team/capacitor-swift-pm.git",
       "state" : {
-        "revision" : "bc99a4197e8a966c99912a644a9aa5710f7e3409",
-        "version" : "7.0.1"
+        "revision" : "596259033e94829dffc552a40e7129262122995e",
+        "version" : "8.0.0"
+      }
+    },
+    {
+      "identity" : "stream-core-swift",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/GetStream/stream-core-swift.git",
+      "state" : {
+        "revision" : "fc4cc112690e1389e5ca3172bc3b55fea1dbc0da",
+        "version" : "0.10.1"
       }
     },
     {
@@ -14,8 +23,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/GetStream/stream-video-swift.git",
       "state" : {
-        "revision" : "4be15a9b7cf0c446b7be4438156a776e9023fcef",
-        "version" : "1.46.0"
+        "revision" : "0b22fd405cea5eac3e65a2b51b6a0125f495bb57",
+        "version" : "1.53.0"
       }
     },
     {
@@ -23,8 +32,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/GetStream/stream-video-swift-webrtc.git",
       "state" : {
-        "revision" : "de49511ed6c6d7acbbea79f73660a5933d4bdd33",
-        "version" : "137.0.41"
+        "revision" : "3b93811650dfb4ac46ec4cdc154b6e86e0f2009e",
+        "version" : "145.15.0"
       }
     },
     {
@@ -32,8 +41,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/apple/swift-protobuf.git",
       "state" : {
-        "revision" : "102a647b573f60f73afdce5613a51d71349fe507",
-        "version" : "1.30.0"
+        "revision" : "55d7a1cc5666b85c13464aea1c4b4a90feccb4c8",
+        "version" : "1.38.1"
       }
     }
   ],
