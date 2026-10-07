@@ -1,12 +1,28 @@
 # @capgo/capacitor-stream-call
-<a href="https://capgo.app/"><img src="https://capgo.app/readme-banner.svg?repo=Cap-go/capacitor-streamcall" alt="Capgo - Instant updates for Capacitor" /></a>
+
+Add video and audio calls to your Capacitor app with the Stream Video SDK, including incoming call handling and native call screens on iOS and Android.
+
+<a href="https://capgo.app/?ref=plugin_streamcall"><img src="https://capgo.app/readme-banner.svg?repo=Cap-go/capacitor-streamcall" alt="Capgo - Instant updates for Capacitor" /></a>
 
 <div align="center">
-  <h2><a href="https://capgo.app/?ref=plugin_streamcall"> ➡️ Get Instant updates for your App with Capgo</a></h2>
-  <h2><a href="https://capgo.app/consulting/?ref=plugin_streamcall"> Missing a feature? We’ll build the plugin for you 💪</a></h2>
+  <p><b>Capgo</b>: open-source live updates for Ionic and Capacitor apps. Ship OTA fixes and features instantly, without waiting for app store review.</p>
+  <h2><a href="https://capgo.app/register/?ref=plugin_streamcall">➡️ Get started for free</a></h2>
+  <p>14-day unlimited free trial. No credit card required</p>
+  <p><a href="https://capgo.app/consulting/?ref=plugin_streamcall">Missing a feature? We'll build the plugin for you 💪</a></p>
 </div>
 
-A Capacitor plugin that uses the [Stream Video SDK](https://getstream.io/) to enable video calling functionality in your app.
+<p align="center">
+  <img src="https://raw.githubusercontent.com/Cap-go/capacitor-streamcall/main/assets/github-social-preview.png" alt="@capgo/capacitor-stream-call for Capacitor apps" width="300" />
+</p>
+
+## Key features
+
+- **Sessions**: `login()` and `logout()` with a Stream user token.
+- **Calls**: `call()`, `acceptCall()`, `rejectCall()` and `endCall()`, with `callEvent` and `incomingCall` listeners.
+- **Media controls**: `setMicrophoneEnabled()`, `setCameraEnabled()`, `switchCamera()` and `setSpeaker()`.
+- **Call info**: `getCallStatus()`, `getCallInfo()` and `getCurrentUser()`.
+- **Dynamic API key**: `setDynamicStreamVideoApikey()` switches the Stream API key at runtime on native.
+- **Platforms**: iOS, Android and Web. Web uses the Stream video client.
 
 ## Documentation
 
