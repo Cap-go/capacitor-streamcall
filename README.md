@@ -21,7 +21,7 @@ Add video and audio calls to your Capacitor app with the Stream Video SDK, inclu
 - **Calls**: `call()`, `acceptCall()`, `rejectCall()` and `endCall()`, with `callEvent` and `incomingCall` listeners.
 - **Media controls**: `setMicrophoneEnabled()`, `setCameraEnabled()`, `switchCamera()` and `setSpeaker()`.
 - **Call info**: `getCallStatus()`, `getCallInfo()` and `getCurrentUser()`.
-- **Dynamic API key**: `setDynamicStreamVideoApikey()` switches the Stream API key at runtime on native.
+- **Dynamic API key**: `setDynamicStreamVideoApikey()` stores a Stream API key that native uses the next time it creates the client.
 - **Platforms**: iOS, Android and Web. Web uses the Stream video client.
 
 ## Documentation
